@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-en="Invest Spain Properties — Real Estate Investment" data-es="Invest Spain Properties — Inversión Inmobiliaria">Invest Spain Properties</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <span class="logo">Invest Spain Properties</span>
+      <button class="lang-toggle" id="lang-toggle" type="button">ES</button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <h1 data-en="Exclusive Real Estate Investment Opportunities in Spain" data-es="Oportunidades Exclusivas de Inversión Inmobiliaria en España">
+        Exclusive Real Estate Investment Opportunities in Spain
+      </h1>
+      <p class="hero-sub" data-en="Get matched with off-market properties tailored to your investment profile — no spam, only real opportunities." data-es="Recibe propiedades exclusivas fuera de mercado, adaptadas a tu perfil de inversión — sin spam, solo oportunidades reales.">
+        Get matched with off-market properties tailored to your investment profile — no spam, only real opportunities.
+      </p>
+      <a href="#form" class="btn-primary" data-en="Get Investment Alerts" data-es="Recibe Alertas de Inversión">Get Investment Alerts</a>
+    </div>
+  </header>
+
+  <section class="valores">
+    <div class="valor">
+      <span class="valor-numero">01</span>
+      <h3 data-en="Curated, off-market properties" data-es="Propiedades seleccionadas, fuera de mercado">Curated, off-market properties</h3>
+      <p data-en="Access opportunities before they reach public listings." data-es="Accede a oportunidades antes de que lleguen a los portales públicos.">Access opportunities before they reach public listings.</p>
+    </div>
+    <div class="valor">
+      <span class="valor-numero">02</span>
+      <h3 data-en="Matched to your profile" data-es="Adaptado a tu perfil">Matched to your profile</h3>
+      <p data-en="Tell us your budget, region and timeline — we do the filtering." data-es="Cuéntanos tu presupuesto, zona y plazos — nosotros filtramos por ti.">Tell us your budget, region and timeline — we do the filtering.</p>
+    </div>
+    <div class="valor">
+      <span class="valor-numero">03</span>
+      <h3 data-en="No spam, ever" data-es="Cero spam, siempre">No spam, ever</h3>
+      <p data-en="You only hear from us when there's a real match." data-es="Solo tendrás noticias nuestras cuando haya una coincidencia real.">You only hear from us when there's a real match.</p>
+    </div>
+  </section>
+
+  <section class="form-section" id="form">
+    <div class="form-wrap">
+      <h2 data-en="Tell us what you're looking for" data-es="Cuéntanos qué estás buscando">Tell us what you're looking for</h2>
+      <p class="form-intro" data-en="Takes less than 2 minutes. Your information is confidential." data-es="Tarda menos de 2 minutos. Tu información es confidencial.">Takes less than 2 minutes. Your information is confidential.</p>
+
+      <form id="lead-form" novalidate>
+
+        <div class="campo">
+          <label for="full_name" data-en="Full name" data-es="Nombre completo">Full name</label>
+          <input type="text" id="full_name" name="full_name" required>
+        </div>
+
+        <div class="campo-fila">
+          <div class="campo">
+            <label for="email" data-en="Email" data-es="Email">Email</label>
+            <input type="email" id="email" name="email" required>
+          </div>
+          <div class="campo">
+            <label for="phone" data-en="Phone (optional)" data-es="Teléfono (opcional)">Phone (optional)</label>
+            <input type="tel" id="phone" name="phone">
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="country" data-en="Country of residence" data-es="País de residencia">Country of residence</label>
+          <input type="text" id="country" name="country" required>
+        </div>
+
+        <div class="campo">
+          <span class="campo-label" data-en="Do you currently own property in Spain?" data-es="¿Posees actualmente alguna propiedad en España?">Do you currently own property in Spain?</span>
+          <div class="radio-fila">
+            <label class="radio-opcion"><input type="radio" name="owns_property_spain" value="si" required> <span data-en="Yes" data-es="Sí">Yes</span></label>
+            <label class="radio-opcion"><input type="radio" name="owns_property_spain" value="no" required> <span data-en="No" data-es="No">No</span></label>
+          </div>
+        </div>
+
+        <div class="campo campo-condicional" id="campo-properties-count" hidden>
+          <label for="properties_count" data-en="How many properties do you currently own?" data-es="¿Cuántas propiedades posees actualmente?">How many properties do you currently own?</label>
+          <input type="number" id="properties_count" name="properties_count" min="1">
+        </div>
+
+        <div class="campo-fila">
+          <div class="campo">
+            <label for="budget_range" data-en="Investment budget" data-es="Presupuesto de inversión">Investment budget</label>
+            <select id="budget_range" name="budget_range" required>
+              <option value="" data-en="Select…" data-es="Selecciona…">Select…</option>
+              <option value="<200k">&lt; €200,000</option>
+              <option value="200k-500k">€200,000 – €500,000</option>
+              <option value="500k-1m">€500,000 – €1,000,000</option>
+              <option value="1m+">€1,000,000+</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="timeframe" data-en="Investment timeframe" data-es="Plazo para invertir">Investment timeframe</label>
+            <select id="timeframe" name="timeframe" required>
+              <option value="" data-en="Select…" data-es="Selecciona…">Select…</option>
+              <option value="immediate" data-en="Immediate (0–3 months)" data-es="Inmediato (0–3 meses)">Immediate (0–3 months)</option>
+              <option value="3-6" data-en="3–6 months" data-es="3–6 meses">3–6 months</option>
+              <option value="6-12" data-en="6–12 months" data-es="6–12 meses">6–12 months</option>
+              <option value="exploring" data-en="Just exploring" data-es="Solo explorando opciones">Just exploring</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="region_interest" data-en="Region of interest" data-es="Zona de interés">Region of interest</label>
+          <select id="region_interest" name="region_interest" required>
+            <option value="" data-en="Select…" data-es="Selecciona…">Select…</option>
+            <option value="costa-del-sol">Costa del Sol</option>
+            <option value="madrid">Madrid</option>
+            <option value="barcelona">Barcelona</option>
+            <option value="baleares" data-en="Balearic Islands" data-es="Islas Baleares">Balearic Islands</option>
+            <option value="costa-blanca">Costa Blanca</option>
+            <option value="canarias" data-en="Canary Islands" data-es="Islas Canarias">Canary Islands</option>
+            <option value="otra" data-en="Other" data-es="Otra">Other</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-primary btn-submit" data-en="Request Investment Alerts" data-es="Solicitar Alertas de Inversión">Request Investment Alerts</button>
+
+        <p class="form-status" id="form-status" role="status"></p>
+      </form>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Invest Spain Properties. <span data-en="All rights reserved." data-es="Todos los derechos reservados.">All rights reserved.</span></p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

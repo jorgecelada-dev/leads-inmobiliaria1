@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel privado — Invest Spain Properties</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body class="admin-body">
+
+  <!-- Pantalla de login -->
+  <section class="admin-login" id="admin-login">
+    <form class="admin-login-card" id="login-form">
+      <h1>Panel privado</h1>
+      <p class="admin-login-sub">Invest Spain Properties</p>
+      <div class="campo">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" required>
+      </div>
+      <div class="campo">
+        <label for="login-password">Contraseña</label>
+        <input type="password" id="login-password" required>
+      </div>
+      <button type="submit" class="btn-primary btn-submit">Entrar</button>
+      <p class="form-status" id="login-status"></p>
+    </form>
+  </section>
+
+  <!-- Dashboard -->
+  <section class="admin-dashboard" id="admin-dashboard" hidden>
+    <nav class="topbar">
+      <div class="topbar-inner">
+        <span class="logo">Panel privado</span>
+        <button class="lang-toggle" id="logout-btn" type="button">Salir</button>
+      </div>
+    </nav>
+
+    <div class="admin-wrap">
+      <div class="admin-header">
+        <h1>Leads</h1>
+        <div class="admin-filtros">
+          <select id="filtro-status">
+            <option value="">Todos los estados</option>
+            <option value="new">Nuevo</option>
+            <option value="contacted">Contactado</option>
+            <option value="qualified">Cualificado</option>
+            <option value="won">Ganado</option>
+            <option value="lost">Perdido</option>
+          </select>
+          <button class="btn-primary" id="refrescar-btn" type="button">Refrescar</button>
+        </div>
+      </div>
+
+      <p class="form-status" id="dashboard-status"></p>
+
+      <div class="admin-tabla-wrap">
+        <table class="admin-tabla" id="tabla-leads">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Nombre</th>
+              <th>Contacto</th>
+              <th>País</th>
+              <th>Presupuesto</th>
+              <th>Zona</th>
+              <th>Plazo</th>
+              <th>Propiedades</th>
+              <th>Estado</th>
+              <th>Notas</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-leads-body">
+            <!-- filas generadas por admin.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <script src="admin.js"></script>
+</body>
+</html>
