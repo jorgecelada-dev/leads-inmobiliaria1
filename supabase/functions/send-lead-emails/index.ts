@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
   }
 
   const payload = await req.json();
+  console.log("Payload recibido:", JSON.stringify(payload));
   const lead = payload.record;
 
   if (!lead) {
@@ -82,10 +83,13 @@ Deno.serve(async (req) => {
   const idioma = lead.form_language === "en" ? "en" : "es";
   const textoLead = TEXTOS[idioma];
 
-  const [resultadoLead, resultadoInterno] = await Promise.allSettled([
+  const [resultadoLead, resultadoInterno] = await Promise.all([
     enviarEmail(lead.email, textoLead.asunto, textoLead.cuerpo(lead.full_name)),
     enviarEmail(NOTIFY_EMAIL, `Nuevo lead: ${lead.full_name}`, cuerpoNotificacionInterna(lead)),
   ]);
+
+  console.log("Resultado email lead:", JSON.stringify(resultadoLead));
+  console.log("Resultado email interno:", JSON.stringify(resultadoInterno));
 
   return new Response(
     JSON.stringify({ resultadoLead, resultadoInterno }),
