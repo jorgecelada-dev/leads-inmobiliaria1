@@ -10,6 +10,8 @@
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const NOTIFY_EMAIL = Deno.env.get("NOTIFY_EMAIL") ?? "jorgeceladaa2@gmail.com";
 const FROM_ADDRESS = "Invest Spain Properties <onboarding@resend.dev>";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
 const TEXTOS = {
   es: {
@@ -67,6 +69,23 @@ async function enviarEmail(destinatario: string, asunto: string, html: string) {
   }
 }
 
+async function registrarEnvio(authHeader: string, leadId: string, asunto: string) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/email_log`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": authHeader,
+        "apikey": SUPABASE_ANON_KEY ?? "",
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({ lead_id: leadId, subject: asunto }),
+    });
+  } catch (error) {
+    console.error("No se pudo registrar el envío en email_log:", error);
+  }
+}
+
 Deno.serve(async (req) => {
   if (!RESEND_API_KEY) {
     return new Response(JSON.stringify({ error: "RESEND_API_KEY no configurada" }), { status: 500 });
@@ -90,6 +109,13 @@ Deno.serve(async (req) => {
 
   console.log("Resultado email lead:", JSON.stringify(resultadoLead));
   console.log("Resultado email interno:", JSON.stringify(resultadoInterno));
+
+  if (resultadoLead.ok) {
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      await registrarEnvio(authHeader, lead.id, textoLead.asunto);
+    }
+  }
 
   return new Response(
     JSON.stringify({ resultadoLead, resultadoInterno }),

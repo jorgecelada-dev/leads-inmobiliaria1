@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check admin.js)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

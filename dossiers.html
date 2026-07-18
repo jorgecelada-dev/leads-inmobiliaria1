@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Mis inmuebles — Invest Spain Properties</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body class="admin-body">
+
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <span class="logo">Panel privado</span>
+      <div class="topbar-nav">
+        <a href="admin.html" class="nav-link">Leads</a>
+        <a href="dossiers.html" class="nav-link nav-link-activo">Mis inmuebles</a>
+        <a href="marketing.html" class="nav-link">Email-marketing</a>
+        <button class="lang-toggle" id="logout-btn" type="button">Salir</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="admin-wrap">
+    <div class="admin-header">
+      <h1>Mis inmuebles</h1>
+    </div>
+
+    <div class="inmuebles-tabs">
+      <button type="button" class="inmuebles-tab inmuebles-tab-activa" data-tab="dossiers">Dossiers</button>
+      <button type="button" class="inmuebles-tab" data-tab="seguimiento">Seguimiento</button>
+    </div>
+
+    <div id="tab-dossiers" class="inmuebles-tab-panel">
+      <div class="admin-header">
+        <p></p>
+        <button class="btn-primary" id="nuevo-dossier-btn" type="button">+ Nuevo dossier</button>
+      </div>
+
+      <p class="form-status" id="dossiers-status"></p>
+
+      <div class="dossiers-lista" id="dossiers-lista"></div>
+
+      <section class="dossier-editor" id="dossier-editor" hidden>
+      <div class="dossier-editor-form">
+        <h2 id="editor-titulo">Nuevo dossier</h2>
+        <form id="dossier-form">
+
+          <div class="campo">
+            <label for="d-title">Título</label>
+            <input type="text" id="d-title" required>
+          </div>
+
+          <div class="campo-fila">
+            <div class="campo">
+              <label for="d-address">Dirección</label>
+              <input type="text" id="d-address">
+            </div>
+            <div class="campo">
+              <label for="d-region">Zona</label>
+              <input type="text" id="d-region">
+            </div>
+          </div>
+
+          <div class="campo-fila">
+            <div class="campo">
+              <label for="d-price">Precio (€)</label>
+              <input type="number" id="d-price" min="0">
+            </div>
+            <div class="campo">
+              <label for="d-surface">Superficie (m²)</label>
+              <input type="number" id="d-surface" min="0">
+            </div>
+          </div>
+
+          <div class="campo-fila">
+            <div class="campo">
+              <label for="d-bedrooms">Habitaciones</label>
+              <input type="number" id="d-bedrooms" min="0">
+            </div>
+            <div class="campo">
+              <label for="d-bathrooms">Baños</label>
+              <input type="number" id="d-bathrooms" min="0">
+            </div>
+          </div>
+
+          <div class="campo-fila">
+            <div class="campo">
+              <label for="d-energy">Certificación energética</label>
+              <select id="d-energy">
+                <option value="">—</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+                <option value="G">G</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="d-community">Gastos comunidad (€/mes)</label>
+              <input type="number" id="d-community" min="0">
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="d-ibi">IBI anual (€)</label>
+            <input type="number" id="d-ibi" min="0">
+          </div>
+
+          <div class="campo">
+            <label for="d-description">Descripción</label>
+            <textarea id="d-description" rows="5"></textarea>
+          </div>
+
+          <div class="campo">
+            <label for="d-area">Zona y puntos de interés cercanos</label>
+            <textarea id="d-area" rows="4"></textarea>
+          </div>
+
+          <div class="campo">
+            <label for="d-cover">Foto de portada</label>
+            <input type="file" id="d-cover" accept="image/*">
+            <div class="dossier-file-preview" id="d-cover-preview"></div>
+          </div>
+
+          <div class="campo">
+            <label for="d-floorplan">Plano de planta</label>
+            <input type="file" id="d-floorplan" accept="image/*">
+            <div class="dossier-file-preview" id="d-floorplan-preview"></div>
+          </div>
+
+          <div class="campo">
+            <label for="d-gallery">Galería de fotos (varias)</label>
+            <input type="file" id="d-gallery" accept="image/*" multiple>
+            <div class="dossier-file-preview dossier-file-preview-galeria" id="d-gallery-preview"></div>
+          </div>
+
+          <div class="dossier-editor-botones">
+            <button type="submit" class="btn-primary">Guardar dossier</button>
+            <button type="button" class="btn-secundario" id="cancelar-editor-btn">Cancelar</button>
+            <button type="button" class="btn-eliminar" id="eliminar-dossier-btn" hidden>Eliminar dossier</button>
+          </div>
+          <p class="form-status" id="dossier-form-status"></p>
+        </form>
+      </div>
+
+      <div class="dossier-preview-wrap">
+        <div class="dossier-preview-acciones">
+          <button type="button" class="btn-primary" id="generar-pdf-btn">Generar PDF</button>
+          <a href="#" id="ver-pdf-link" target="_blank" rel="noopener" hidden>Ver último PDF generado</a>
+        </div>
+        <div id="dossier-preview"></div>
+      </div>
+      </section>
+    </div>
+
+    <div id="tab-seguimiento" class="inmuebles-tab-panel" hidden>
+      <div class="admin-header">
+        <p></p>
+        <button class="btn-primary" id="nuevo-inmueble-btn" type="button">+ Añadir inmueble</button>
+      </div>
+
+      <p class="form-status" id="seguimiento-status"></p>
+
+      <div class="seguimiento-lista" id="seguimiento-lista"></div>
+
+      <section class="seguimiento-detalle" id="seguimiento-nuevo-form" hidden>
+        <div class="seguimiento-detalle-cabecera">
+          <h2>Nuevo inmueble</h2>
+        </div>
+        <form id="inmueble-form">
+          <div class="campo">
+            <label for="inm-title">Título</label>
+            <input type="text" id="inm-title" required>
+          </div>
+          <div class="campo-fila">
+            <div class="campo">
+              <label for="inm-address">Dirección</label>
+              <input type="text" id="inm-address">
+            </div>
+            <div class="campo">
+              <label for="inm-region">Zona</label>
+              <input type="text" id="inm-region">
+            </div>
+          </div>
+          <div class="campo-fila">
+            <div class="campo">
+              <label for="inm-price">Precio (€)</label>
+              <input type="number" id="inm-price" min="0">
+            </div>
+            <div class="campo">
+              <label for="inm-surface">Superficie (m²)</label>
+              <input type="number" id="inm-surface" min="0">
+            </div>
+          </div>
+          <div class="campo-fila">
+            <div class="campo">
+              <label for="inm-bedrooms">Habitaciones</label>
+              <input type="number" id="inm-bedrooms" min="0">
+            </div>
+            <div class="campo">
+              <label for="inm-bathrooms">Baños</label>
+              <input type="number" id="inm-bathrooms" min="0">
+            </div>
+          </div>
+          <div class="campo">
+            <label for="inm-estado">Estado de la venta</label>
+            <select id="inm-estado">
+              <option value="available">Disponible</option>
+              <option value="reserved">Reservado</option>
+              <option value="negotiating">En negociación</option>
+              <option value="sold">Vendido</option>
+              <option value="withdrawn">Retirado</option>
+            </select>
+          </div>
+          <div class="dossier-editor-botones">
+            <button type="submit" class="btn-primary">Guardar inmueble</button>
+            <button type="button" class="btn-secundario" id="cancelar-inmueble-btn">Cancelar</button>
+          </div>
+          <p class="form-status" id="inmueble-form-status"></p>
+        </form>
+      </section>
+
+      <section class="seguimiento-detalle" id="seguimiento-detalle" hidden>
+        <div class="seguimiento-detalle-cabecera">
+          <h2 id="seguimiento-titulo"></h2>
+          <button type="button" class="btn-secundario" id="cerrar-seguimiento-btn">Cerrar</button>
+        </div>
+
+        <div class="campo">
+          <label for="seg-estado">Estado de la venta</label>
+          <select id="seg-estado">
+            <option value="available">Disponible</option>
+            <option value="reserved">Reservado</option>
+            <option value="negotiating">En negociación</option>
+            <option value="sold">Vendido</option>
+            <option value="withdrawn">Retirado</option>
+          </select>
+        </div>
+
+        <div class="seguimiento-comparativa" id="seguimiento-comparativa"></div>
+
+        <div class="seguimiento-bloque">
+          <h3>Leads interesados</h3>
+          <div class="dossier-file-fila">
+            <select id="seg-lead-select"></select>
+            <button type="button" class="btn-secundario" id="anadir-interesado-btn">Añadir</button>
+          </div>
+          <ul class="seguimiento-lista-simple" id="seguimiento-interesados"></ul>
+        </div>
+
+        <div class="seguimiento-bloque">
+          <h3>Documentos</h3>
+          <div class="dossier-file-fila">
+            <input type="text" id="seg-doc-nombre" placeholder="Nombre del documento">
+            <input type="file" id="seg-doc-archivo">
+          </div>
+          <button type="button" class="btn-secundario" id="subir-documento-btn">Subir documento</button>
+          <ul class="seguimiento-lista-simple" id="seguimiento-documentos"></ul>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" defer></script>
+  <script src="dossiers.js" defer></script>
+</body>
+</html>

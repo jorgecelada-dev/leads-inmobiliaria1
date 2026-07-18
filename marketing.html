@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Email-marketing — Invest Spain Properties</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body class="admin-body">
+
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <span class="logo">Panel privado</span>
+      <div class="topbar-nav">
+        <a href="admin.html" class="nav-link">Leads</a>
+        <a href="dossiers.html" class="nav-link">Mis inmuebles</a>
+        <a href="marketing.html" class="nav-link nav-link-activo">Email-marketing</a>
+        <button class="lang-toggle" id="logout-btn" type="button">Salir</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="admin-wrap">
+    <div class="admin-header">
+      <h1>Email-marketing</h1>
+    </div>
+    <p class="marketing-nota">
+      Solo aparecen aquí los leads marcados como "Marketing" en la pestaña Leads —
+      así nos aseguramos de no enviar campañas a nadie que no lo haya consentido.
+    </p>
+
+    <div class="admin-filtros">
+      <select id="mkt-filtro-presupuesto">
+        <option value="">Todos los presupuestos</option>
+      </select>
+      <select id="mkt-filtro-zona">
+        <option value="">Todas las zonas</option>
+      </select>
+      <select id="mkt-filtro-plazo">
+        <option value="">Todos los plazos</option>
+      </select>
+      <button class="btn-secundario" id="mkt-preset-ejemplo-btn" type="button">Ejemplo: inversores 1M€+</button>
+      <button class="btn-secundario" id="mkt-limpiar-filtros-btn" type="button">Limpiar filtros</button>
+    </div>
+
+    <p class="form-status" id="marketing-status"></p>
+
+    <div class="admin-tabla-wrap">
+      <table class="admin-tabla" id="tabla-marketing">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="mkt-seleccionar-todos"></th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Presupuesto</th>
+            <th>Zona</th>
+            <th>Último email enviado</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-marketing-body"></tbody>
+      </table>
+    </div>
+
+    <section class="marketing-compositor">
+      <h2>Enviar campaña</h2>
+      <p id="marketing-seleccionados">0 lead(s) seleccionados</p>
+      <div class="campo">
+        <label for="mkt-asunto">Asunto</label>
+        <input type="text" id="mkt-asunto" required>
+      </div>
+      <div class="campo">
+        <label for="mkt-cuerpo">Mensaje</label>
+        <textarea id="mkt-cuerpo" rows="8" required></textarea>
+      </div>
+      <button class="btn-primary" id="mkt-enviar-btn" type="button">Enviar campaña</button>
+      <p class="form-status" id="mkt-envio-status"></p>
+    </section>
+  </div>
+
+  <script src="marketing.js" defer></script>
+</body>
+</html>
