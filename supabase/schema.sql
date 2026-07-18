@@ -85,8 +85,23 @@ create table dossiers (
   floor_plan_url text,
   gallery_urls text[],
   pdf_url text,
-  sale_status text default 'available'
+  sale_status text default 'available',
   -- Valores esperados: available, reserved, negotiating, sold, withdrawn
+  points_of_interest jsonb default '[]',
+  gallery jsonb default '[]',
+  lat numeric,
+  lng numeric,
+  build_year int,
+  renovation_year int,
+  orientation text,
+  -- Valores esperados de orientation: norte, sur, este, oeste, noreste, noroeste, sureste, suroeste
+  garage_spaces int,
+  storage_room boolean default false,
+  furnished text,
+  -- Valores esperados de furnished: si, no, parcial
+  cadastral_reference text,
+  legal_status text,
+  annual_insurance_estimate numeric
 );
 alter table dossiers enable row level security;
 create policy "Authenticated can manage dossiers" on dossiers for all to authenticated using (true) with check (true);

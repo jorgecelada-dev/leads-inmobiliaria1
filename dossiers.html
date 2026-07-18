@@ -5,15 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>Mis inmuebles — Invest Spain Properties</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="estilos.css">
 </head>
 <body class="admin-body">
 
   <nav class="topbar">
     <div class="topbar-inner">
-      <span class="logo">Panel privado</span>
+      <span class="logo">
+        <svg width="22" height="22" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M40 6 L74 40 L40 74 L6 40 Z" stroke="#EEF4F3" stroke-width="2"/>
+          <g fill="#EEF4F3">
+            <rect x="26" y="38" width="6" height="16" />
+            <rect x="37" y="28" width="6" height="26" />
+            <rect x="48" y="34" width="6" height="20" />
+          </g>
+        </svg>
+        Panel privado
+      </span>
       <div class="topbar-nav">
         <a href="admin.html" class="nav-link">Leads</a>
         <a href="dossiers.html" class="nav-link nav-link-activo">Mis inmuebles</a>
@@ -64,29 +75,46 @@
             </div>
           </div>
 
+          <div class="campo">
+            <label>Mapa de ubicación</label>
+            <div id="mapa-preview" class="mapa-preview">
+              <p class="mapa-vacio">Escribe la dirección y la zona, luego pulsa "Buscar en el mapa".</p>
+            </div>
+            <button type="button" class="btn-secundario" id="buscar-mapa-btn">Buscar en el mapa</button>
+            <p class="form-status" id="mapa-status"></p>
+          </div>
+
           <div class="campo-fila">
             <div class="campo">
               <label for="d-price">Precio (€)</label>
               <input type="number" id="d-price" min="0">
             </div>
             <div class="campo">
-              <label for="d-surface">Superficie (m²)</label>
-              <input type="number" id="d-surface" min="0">
+              <label for="d-currency">Moneda de visualización</label>
+              <select id="d-currency">
+                <option value="EUR">EUR (€)</option>
+                <option value="USD">USD ($)</option>
+                <option value="GBP">GBP (£)</option>
+              </select>
             </div>
           </div>
 
           <div class="campo-fila">
+            <div class="campo">
+              <label for="d-surface">Superficie (m²)</label>
+              <input type="number" id="d-surface" min="0">
+            </div>
             <div class="campo">
               <label for="d-bedrooms">Habitaciones</label>
               <input type="number" id="d-bedrooms" min="0">
             </div>
+          </div>
+
+          <div class="campo-fila">
             <div class="campo">
               <label for="d-bathrooms">Baños</label>
               <input type="number" id="d-bathrooms" min="0">
             </div>
-          </div>
-
-          <div class="campo-fila">
             <div class="campo">
               <label for="d-energy">Certificación energética</label>
               <select id="d-energy">
@@ -100,15 +128,80 @@
                 <option value="G">G</option>
               </select>
             </div>
+          </div>
+
+          <div class="campo-fila">
             <div class="campo">
               <label for="d-community">Gastos comunidad (€/mes)</label>
               <input type="number" id="d-community" min="0">
             </div>
+            <div class="campo">
+              <label for="d-ibi">IBI anual (€)</label>
+              <input type="number" id="d-ibi" min="0">
+            </div>
+          </div>
+
+          <div class="campo-fila">
+            <div class="campo">
+              <label for="d-insurance">Seguro estimado anual (€, opcional)</label>
+              <input type="number" id="d-insurance" min="0">
+            </div>
+            <div class="campo">
+              <label for="d-build-year">Año de construcción</label>
+              <input type="number" id="d-build-year" min="1800" max="2100">
+            </div>
+          </div>
+
+          <div class="campo-fila">
+            <div class="campo">
+              <label for="d-renovation-year">Año de última reforma (opcional)</label>
+              <input type="number" id="d-renovation-year" min="1800" max="2100">
+            </div>
+            <div class="campo">
+              <label for="d-orientation">Orientación</label>
+              <select id="d-orientation">
+                <option value="">—</option>
+                <option value="norte">Norte</option>
+                <option value="sur">Sur</option>
+                <option value="este">Este</option>
+                <option value="oeste">Oeste</option>
+                <option value="noreste">Noreste</option>
+                <option value="noroeste">Noroeste</option>
+                <option value="sureste">Sureste</option>
+                <option value="suroeste">Suroeste</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="campo-fila">
+            <div class="campo">
+              <label for="d-garage">Plazas de garaje</label>
+              <input type="number" id="d-garage" min="0">
+            </div>
+            <div class="campo">
+              <label for="d-furnished">Amueblado</label>
+              <select id="d-furnished">
+                <option value="">—</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+                <option value="parcial">Parcialmente</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="campo-fila">
+            <div class="campo campo-inline">
+              <label class="campo-checkbox-label"><input type="checkbox" id="d-storage"> Tiene trastero</label>
+            </div>
+            <div class="campo">
+              <label for="d-cadastral">Referencia catastral (opcional)</label>
+              <input type="text" id="d-cadastral">
+            </div>
           </div>
 
           <div class="campo">
-            <label for="d-ibi">IBI anual (€)</label>
-            <input type="number" id="d-ibi" min="0">
+            <label for="d-legal-status">Situación legal (una línea)</label>
+            <input type="text" id="d-legal-status" placeholder='Ej. "Libre de cargas, cédula de habitabilidad en vigor"'>
           </div>
 
           <div class="campo">
@@ -117,8 +210,13 @@
           </div>
 
           <div class="campo">
-            <label for="d-area">Zona y puntos de interés cercanos</label>
-            <textarea id="d-area" rows="4"></textarea>
+            <label>Puntos de interés cercanos</label>
+            <div id="poi-grid" class="poi-grid"></div>
+          </div>
+
+          <div class="campo">
+            <label for="d-area">Notas adicionales sobre la zona (opcional)</label>
+            <textarea id="d-area" rows="3" placeholder="Cualquier detalle que no encaje en las casillas de arriba"></textarea>
           </div>
 
           <div class="campo">
@@ -149,11 +247,12 @@
       </div>
 
       <div class="dossier-preview-wrap">
-        <div class="dossier-preview-acciones">
+        <p class="dossier-preview-editando" id="dossier-preview-editando" hidden></p>
+        <div id="dossier-preview"></div>
+        <div class="dossier-preview-acciones" id="dossier-preview-acciones" hidden>
           <button type="button" class="btn-primary" id="generar-pdf-btn">Generar PDF</button>
           <a href="#" id="ver-pdf-link" target="_blank" rel="noopener" hidden>Ver último PDF generado</a>
         </div>
-        <div id="dossier-preview"></div>
       </div>
       </section>
     </div>

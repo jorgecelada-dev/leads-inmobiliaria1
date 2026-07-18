@@ -4,6 +4,130 @@ const SUPABASE_URL = "https://uagmlfssbixytierxdib.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_8FvlGTc8ICk04jqAH0yzzg_Q84Jp1UQ";
 const STORAGE_BUCKET = "dossiers";
 const CONTACTO_EMAIL = "jorgeceladaa2@gmail.com";
+const CONTACTO_TELEFONO = "+34 682548468";
+
+// Categorías fijas de puntos de interés, cada una con su icono (trazo simple,
+// mismo estilo en toda la app). El icono es el contenido interior de un <svg>.
+const CATEGORIAS_POI = [
+  { key: 'airport', label: 'Aeropuerto', icon: '<path d="M21 3 L3 10 L11 13 L14 21 L21 3 Z"/><line x1="11" y1="13" x2="21" y2="3"/>' },
+  { key: 'beach', label: 'Playa', icon: '<circle cx="12" cy="7" r="3"/><path d="M2 15 q2.5 -3 5 0 t5 0 t5 0 t5 0"/><path d="M2 19 q2.5 -3 5 0 t5 0 t5 0 t5 0"/>' },
+  { key: 'transport', label: 'Transporte público', icon: '<rect x="5" y="3" width="14" height="13" rx="3"/><line x1="5" y1="10" x2="19" y2="10"/><circle cx="8.5" cy="13.2" r="0.9"/><circle cx="15.5" cy="13.2" r="0.9"/><path d="M8 16 L6 20 M16 16 L18 20"/>' },
+  { key: 'schools', label: 'Colegios', icon: '<path d="M12 3 L2 8 L12 13 L22 8 Z"/><path d="M6 10 V16 C6 18 9 20 12 20 C15 20 18 18 18 16 V10"/><line x1="22" y1="8" x2="22" y2="15"/>' },
+  { key: 'shopping', label: 'Centros comerciales', icon: '<path d="M6 8 L4 21 H20 L18 8 Z"/><path d="M8 8 V6 a4 4 0 0 1 8 0 v2"/>' },
+  { key: 'restaurants', label: 'Restaurantes', icon: '<line x1="7" y1="2" x2="7" y2="9"/><line x1="10" y1="2" x2="10" y2="9"/><path d="M7 9 Q8.5 12 10 9"/><line x1="8.5" y1="2" x2="8.5" y2="22"/><path d="M16 2 C18 2 19 5 19 8 C19 11 17 12 16 12 V22"/>' },
+  { key: 'cafes', label: 'Cafeterías', icon: '<path d="M4 9 H18 V15 A5 5 0 0 1 13 20 H9 A5 5 0 0 1 4 15 Z"/><path d="M18 10 H20 A2.5 2.5 0 0 1 20 15 H18"/><path d="M8 3 c0 1.5 -1.5 1.5 -1.5 3 M12 3 c0 1.5 -1.5 1.5 -1.5 3"/>' },
+  { key: 'gym', label: 'Gimnasios', icon: '<rect x="1.5" y="9" width="3" height="6"/><rect x="19.5" y="9" width="3" height="6"/><rect x="5.5" y="7" width="2.5" height="10"/><rect x="16" y="7" width="2.5" height="10"/><line x1="8" y1="12" x2="16" y2="12"/>' },
+  { key: 'parks', label: 'Parques', icon: '<circle cx="12" cy="8" r="6"/><line x1="12" y1="14" x2="12" y2="21"/>' },
+  { key: 'hospital', label: 'Hospitales', icon: '<rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="7.5" x2="12" y2="16.5"/><line x1="7.5" y1="12" x2="16.5" y2="12"/>' },
+  { key: 'bank', label: 'Bancos', icon: '<path d="M3 10 L12 3 L21 10 Z"/><line x1="4" y1="10" x2="4" y2="19"/><line x1="9" y1="10" x2="9" y2="19"/><line x1="15" y1="10" x2="15" y2="19"/><line x1="20" y1="10" x2="20" y2="19"/><line x1="2" y1="20" x2="22" y2="20"/>' },
+  { key: 'offices', label: 'Oficinas', icon: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7 V5 a2 2 0 0 1 2 -2 h4 a2 2 0 0 1 2 2 V7"/><line x1="3" y1="12.5" x2="21" y2="12.5"/>' },
+];
+
+function svgIcono(icono, tamano) {
+  return `<svg width="${tamano}" height="${tamano}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${icono}</svg>`;
+}
+
+const ICONO_PIN = '<circle cx="12" cy="10" r="3"/><path d="M12 21c-4-4.5-7-8-7-11a7 7 0 0 1 14 0c0 3-3 6.5-7 11Z"/>';
+
+// Término de búsqueda en Nominatim para cada categoría, para poder calcular
+// la distancia automáticamente. Es una búsqueda por relevancia (no hay un
+// servicio gratuito fiable de "más cercano por categoría"), así que el
+// resultado es una distancia aproximada en línea recta, no la ruta real.
+const TERMINOS_BUSQUEDA_POI = {
+  airport: 'aeropuerto',
+  beach: 'playa',
+  transport: 'estación de tren',
+  schools: 'colegio',
+  shopping: 'centro comercial',
+  restaurants: 'restaurante',
+  cafes: 'cafetería',
+  gym: 'gimnasio',
+  parks: 'parque',
+  hospital: 'hospital',
+  bank: 'banco',
+  offices: 'oficinas',
+};
+
+// Distancia en línea recta entre dos puntos (fórmula de Haversine), en km.
+function distanciaKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatearDistancia(km) {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+}
+
+// Tiempo real en coche entre dos puntos, por carretera (OSRM: gratuito, sin
+// clave). Devuelve minutos redondeados, o null si falla el servicio.
+async function calcularTiempoEnCoche(lat1, lng1, lat2, lng2) {
+  try {
+    const respuesta = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`,
+    );
+    if (!respuesta.ok) return null;
+    const datos = await respuesta.json();
+    const ruta = datos.routes && datos.routes[0];
+    if (!ruta) return null;
+    return Math.round(ruta.duration / 60);
+  } catch (error) {
+    console.error('No se pudo calcular el tiempo en coche:', error);
+    return null;
+  }
+}
+
+function formatearTiempoCoche(minutos) {
+  if (minutos < 1) return 'menos de 1 min en coche';
+  if (minutos < 60) return `${minutos} min en coche`;
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  return `${horas} h${resto ? ` ${resto} min` : ''} en coche`;
+}
+
+// Busca en Nominatim el resultado más relevante de una categoría cerca del
+// punto dado (acotado a una caja de ~2 km), se queda con el más próximo en
+// línea recta, y calcula el tiempo real en coche hasta él. Si la ruta falla,
+// cae de vuelta a la distancia en línea recta en vez de no mostrar nada.
+async function calcularDistanciaPOI(lat, lng, categoriaKey) {
+  const termino = TERMINOS_BUSQUEDA_POI[categoriaKey];
+  if (!termino) return null;
+  const delta = 0.02; // aprox. 2 km alrededor del punto: buscamos algo cercano de verdad
+  const params = new URLSearchParams({
+    q: termino,
+    format: 'json',
+    limit: '8',
+    bounded: '1',
+    viewbox: `${lng - delta},${lat + delta},${lng + delta},${lat - delta}`,
+  });
+  try {
+    const respuesta = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+    if (!respuesta.ok) return null;
+    const resultados = await respuesta.json();
+    if (!resultados.length) return null;
+    // Nominatim ordena por relevancia, no por cercanía — de los resultados
+    // dentro de la zona nos quedamos con el que esté realmente más cerca,
+    // en vez de asumir que el primero (más "importante") es el más próximo.
+    let masCercano = null;
+    let distanciaMinima = Infinity;
+    for (const resultado of resultados) {
+      const km = distanciaKm(lat, lng, parseFloat(resultado.lat), parseFloat(resultado.lon));
+      if (km < distanciaMinima) {
+        distanciaMinima = km;
+        masCercano = resultado;
+      }
+    }
+    if (!masCercano) return null;
+    const minutos = await calcularTiempoEnCoche(lat, lng, parseFloat(masCercano.lat), parseFloat(masCercano.lon));
+    return minutos != null ? formatearTiempoCoche(minutos) : formatearDistancia(distanciaMinima);
+  } catch (error) {
+    console.error('No se pudo calcular la distancia para', categoriaKey, error);
+    return null;
+  }
+}
 
 function getToken() {
   return sessionStorage.getItem('admin-token');
@@ -27,14 +151,19 @@ const eliminarDossierBtn = document.getElementById('eliminar-dossier-btn');
 const generarPdfBtn = document.getElementById('generar-pdf-btn');
 const verPdfLink = document.getElementById('ver-pdf-link');
 const preview = document.getElementById('dossier-preview');
+const dossierPreviewEditando = document.getElementById('dossier-preview-editando');
+const dossierPreviewAcciones = document.getElementById('dossier-preview-acciones');
 const logoutBtn = document.getElementById('logout-btn');
 
 let dossierActualId = null; // null mientras se está creando uno nuevo
 let dossierActual = {};
-let galeriaSeleccionada = []; // archivos NUEVOS de la galería pendientes de subir
-let galeriaExistente = []; // URLs de galería que ya tenía el dossier (menos las quitadas)
+let galeriaSeleccionada = []; // archivos NUEVOS de la galería pendientes de subir, con su pie de foto: {file, caption}
+let galeriaExistente = []; // fotos que ya tenía el dossier (menos las quitadas): {url, caption}
 let coverExistenteUrl = null; // URL de portada que ya tenía el dossier (null si se quitó)
 let floorplanExistenteUrl = null; // igual, para el plano
+let puntosInteres = {}; // { [categoria]: detalleTexto } — solo entran las categorías marcadas
+let mapaLat = null;
+let mapaLng = null;
 
 // --- Helper: crea un recuadro de imagen con botón "×" para quitarla ---
 function crearPreviewItem(urlImagen, alQuitar) {
@@ -49,6 +178,20 @@ function crearPreviewItem(urlImagen, alQuitar) {
   botonQuitar.addEventListener('click', alQuitar);
   envoltorio.appendChild(img);
   envoltorio.appendChild(botonQuitar);
+  return envoltorio;
+}
+
+// --- Igual, pero con un campo de texto debajo para el pie de foto ---
+function crearPreviewConPie(urlImagen, pieInicial, alQuitar, alCambiarPie) {
+  const envoltorio = crearPreviewItem(urlImagen, alQuitar);
+  envoltorio.classList.add('dossier-file-preview-item-con-pie');
+  const inputPie = document.createElement('input');
+  inputPie.type = 'text';
+  inputPie.className = 'dossier-file-pie';
+  inputPie.placeholder = 'Pie de foto';
+  inputPie.value = pieInicial || '';
+  inputPie.addEventListener('input', () => alCambiarPie(inputPie.value));
+  envoltorio.appendChild(inputPie);
   return envoltorio;
 }
 
@@ -82,7 +225,7 @@ inputFloorplan.addEventListener('change', () => renderPreviewUnico(previewFloorp
 
 // --- Preview de galería: fotos ya existentes + archivos nuevos pendientes de subir ---
 inputGallery.addEventListener('change', () => {
-  galeriaSeleccionada.push(...inputGallery.files);
+  Array.from(inputGallery.files).forEach((file) => galeriaSeleccionada.push({ file, caption: '' }));
   inputGallery.value = ''; // permite reabrir el selector y seguir añadiendo
   renderPreviewGaleria();
 });
@@ -90,18 +233,22 @@ inputGallery.addEventListener('change', () => {
 function renderPreviewGaleria() {
   previewGallery.innerHTML = '';
 
-  galeriaExistente.forEach((url, indice) => {
-    previewGallery.appendChild(crearPreviewItem(url, () => {
-      galeriaExistente.splice(indice, 1);
-      renderPreviewGaleria();
-    }));
+  galeriaExistente.forEach((foto, indice) => {
+    previewGallery.appendChild(crearPreviewConPie(
+      foto.url,
+      foto.caption,
+      () => { galeriaExistente.splice(indice, 1); renderPreviewGaleria(); },
+      (nuevoTexto) => { foto.caption = nuevoTexto; },
+    ));
   });
 
-  galeriaSeleccionada.forEach((file, indice) => {
-    previewGallery.appendChild(crearPreviewItem(URL.createObjectURL(file), () => {
-      galeriaSeleccionada.splice(indice, 1);
-      renderPreviewGaleria();
-    }));
+  galeriaSeleccionada.forEach((item, indice) => {
+    previewGallery.appendChild(crearPreviewConPie(
+      URL.createObjectURL(item.file),
+      item.caption,
+      () => { galeriaSeleccionada.splice(indice, 1); renderPreviewGaleria(); },
+      (nuevoTexto) => { item.caption = nuevoTexto; },
+    ));
   });
 }
 
@@ -109,6 +256,288 @@ logoutBtn.addEventListener('click', () => {
   sessionStorage.removeItem('admin-token');
   window.location.href = 'admin.html';
 });
+
+// --- Rejilla de puntos de interés (casillas con icono + detalle opcional) ---
+const poiGrid = document.getElementById('poi-grid');
+
+function renderGridPOI() {
+  poiGrid.innerHTML = '';
+  CATEGORIAS_POI.forEach((categoria) => {
+    const marcado = Object.prototype.hasOwnProperty.call(puntosInteres, categoria.key);
+
+    const item = document.createElement('div');
+    item.className = 'poi-item' + (marcado ? ' poi-item-activo' : '');
+
+    const cabecera = document.createElement('label');
+    cabecera.className = 'poi-item-cabecera';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = marcado;
+
+    const icono = document.createElement('span');
+    icono.className = 'poi-icono';
+    icono.innerHTML = svgIcono(categoria.icon, 20);
+
+    const etiqueta = document.createElement('span');
+    etiqueta.textContent = categoria.label;
+
+    cabecera.appendChild(checkbox);
+    cabecera.appendChild(icono);
+    cabecera.appendChild(etiqueta);
+    item.appendChild(cabecera);
+
+    const detalle = document.createElement('input');
+    detalle.type = 'text';
+    detalle.className = 'poi-detalle';
+    detalle.placeholder = 'Distancia (se calcula sola, o escríbela tú)';
+    detalle.value = puntosInteres[categoria.key] || '';
+    detalle.hidden = !marcado;
+    detalle.addEventListener('input', () => {
+      puntosInteres[categoria.key] = detalle.value;
+    });
+    item.appendChild(detalle);
+
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        puntosInteres[categoria.key] = detalle.value;
+        detalle.hidden = false;
+        item.classList.add('poi-item-activo');
+
+        // Si ya tenemos la ubicación geocodificada y no hay una distancia
+        // puesta a mano, la calculamos sola (aproximada, línea recta).
+        if (mapaLat != null && mapaLng != null && !detalle.value) {
+          detalle.value = 'Calculando…';
+          calcularDistanciaPOI(mapaLat, mapaLng, categoria.key).then((resultado) => {
+            if (!checkbox.checked) return;
+            detalle.value = resultado || '';
+            puntosInteres[categoria.key] = resultado || '';
+            renderPreview();
+          });
+        }
+      } else {
+        delete puntosInteres[categoria.key];
+        detalle.hidden = true;
+        item.classList.remove('poi-item-activo');
+      }
+    });
+
+    poiGrid.appendChild(item);
+  });
+}
+
+// --- Mapa de ubicación: dirección/zona -> coordenadas (Nominatim) -> mapa (Leaflet) ---
+const mapaPreview = document.getElementById('mapa-preview');
+const mapaStatus = document.getElementById('mapa-status');
+const inputDireccion = document.getElementById('d-address');
+const inputZona = document.getElementById('d-region');
+
+async function buscarEnNominatim(params) {
+  const respuesta = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+  if (!respuesta.ok) return null;
+  const resultados = await respuesta.json();
+  if (resultados.length === 0) return null;
+  return { lat: Number(resultados[0].lat), lng: Number(resultados[0].lon) };
+}
+
+// Intenta varias formas de búsqueda, de la más precisa a la más amplia,
+// porque la búsqueda de texto libre de Nominatim es muy sensible al orden
+// exacto en que se escribe la dirección.
+async function geocodificarDireccion(direccion, zona) {
+  // 1) Búsqueda "estructurada": calle + ciudad por separado (más fiable)
+  if (direccion) {
+    const params = new URLSearchParams({ format: 'json', limit: '1', country: 'España' });
+    params.set('street', direccion);
+    if (zona) params.set('city', zona);
+    const resultado = await buscarEnNominatim(params);
+    if (resultado) return resultado;
+  }
+
+  // 2) Búsqueda de texto libre con dirección + zona juntas
+  if (direccion && zona) {
+    const params = new URLSearchParams({ format: 'json', limit: '1', q: `${direccion}, ${zona}, España` });
+    const resultado = await buscarEnNominatim(params);
+    if (resultado) return resultado;
+  }
+
+  // 3) Solo la zona (da una ubicación aproximada, mejor que nada)
+  if (zona) {
+    const params = new URLSearchParams({ format: 'json', limit: '1', q: `${zona}, España` });
+    const resultado = await buscarEnNominatim(params);
+    if (resultado) return { ...resultado, aproximado: true };
+  }
+
+  return null;
+}
+
+// Guarda la última imagen del mapa ya "congelada" (para usarla en el PDF sin
+// tener que volver a generarla cada vez que se repinta la vista previa)
+let mapaImagenDataUrl = null;
+
+const TILE_SIZE = 256;
+
+// Convierte lat/lng a "coordenadas de tesela" (con decimales) al zoom dado.
+// Es la fórmula estándar de mapas tipo slippy-map (la misma que usan OSM/Google).
+function latLngATesela(lat, lng, zoom) {
+  const n = 2 ** zoom;
+  const x = ((lng + 180) / 360) * n;
+  const latRad = (lat * Math.PI) / 180;
+  const y = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
+  return { x, y };
+}
+
+// Dibuja el rombo + skyline del logo (en blanco) centrado en (cx, cy),
+// escalado a "tamano" px — mismas proporciones que favicon.svg / la topbar.
+function dibujarLogoEnCanvas(ctx, cx, cy, tamano) {
+  const escala = tamano / 80;
+  ctx.save();
+  ctx.translate(cx - tamano / 2, cy - tamano / 2);
+  ctx.scale(escala, escala);
+
+  ctx.beginPath();
+  ctx.moveTo(40, 6);
+  ctx.lineTo(74, 40);
+  ctx.lineTo(40, 74);
+  ctx.lineTo(6, 40);
+  ctx.closePath();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.stroke();
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(26, 38, 6, 16);
+  ctx.fillRect(37, 28, 6, 26);
+  ctx.fillRect(48, 34, 6, 20);
+
+  ctx.restore();
+}
+
+function cargarImagen(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+// Construye la imagen del mapa descargando directamente las teselas de OSM y
+// dibujándolas en un <canvas>, con un marcador propio encima. No depende de
+// ninguna librería de mapas ni de capturar un mapa "en vivo" — por eso es
+// mucho más fiable que las alternativas anteriores.
+async function generarImagenMapa(lat, lng, zoom = 17, anchoPx = 800, altoPx = 400) {
+  const centro = latLngATesela(lat, lng, zoom);
+  const centroPxX = centro.x * TILE_SIZE;
+  const centroPxY = centro.y * TILE_SIZE;
+  const origenX = centroPxX - anchoPx / 2;
+  const origenY = centroPxY - altoPx / 2;
+
+  const tileMinX = Math.floor(origenX / TILE_SIZE);
+  const tileMaxX = Math.floor((origenX + anchoPx) / TILE_SIZE);
+  const tileMinY = Math.floor(origenY / TILE_SIZE);
+  const tileMaxY = Math.floor((origenY + altoPx) / TILE_SIZE);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = anchoPx;
+  canvas.height = altoPx;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#DCE7E5';
+  ctx.fillRect(0, 0, anchoPx, altoPx);
+
+  const cargas = [];
+  for (let tx = tileMinX; tx <= tileMaxX; tx++) {
+    for (let ty = tileMinY; ty <= tileMaxY; ty++) {
+      cargas.push(
+        cargarImagen(`https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`).then((img) => {
+          if (!img) return;
+          ctx.drawImage(img, tx * TILE_SIZE - origenX, ty * TILE_SIZE - origenY, TILE_SIZE, TILE_SIZE);
+        }),
+      );
+    }
+  }
+  await Promise.all(cargas);
+
+  // Marcador propio en el centro exacto (el punto que se geocodificó):
+  // círculo azul con el rombo del logo dibujado dentro, en blanco.
+  const cx = anchoPx / 2;
+  const cy = altoPx / 2;
+  const radioMarcador = 18;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radioMarcador, 0, Math.PI * 2);
+  ctx.fillStyle = '#1D4ED8';
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.stroke();
+
+  dibujarLogoEnCanvas(ctx, cx, cy, radioMarcador * 1.2);
+
+  return canvas.toDataURL('image/png');
+}
+
+// Rellena la distancia de los puntos de interés ya marcados que aún no
+// tengan una (p. ej. si se marcaron antes de tener la ubicación en el mapa).
+async function rellenarDistanciasFaltantes(lat, lng) {
+  const pendientes = Object.keys(puntosInteres).filter((key) => !puntosInteres[key]);
+  if (!pendientes.length) return;
+  await Promise.all(pendientes.map(async (key) => {
+    const resultado = await calcularDistanciaPOI(lat, lng, key);
+    if (!resultado) return;
+    puntosInteres[key] = resultado;
+    const indice = CATEGORIAS_POI.findIndex((c) => c.key === key);
+    const input = poiGrid.children[indice]?.querySelector('.poi-detalle');
+    if (input) input.value = resultado;
+  }));
+}
+
+async function mostrarMapa(lat, lng) {
+  mapaPreview.innerHTML = '<p class="mapa-vacio">Generando mapa…</p>';
+  try {
+    mapaImagenDataUrl = await generarImagenMapa(lat, lng);
+    mapaPreview.innerHTML = `<img src="${mapaImagenDataUrl}" alt="Mapa de ubicación" class="mapa-imagen">`;
+    await rellenarDistanciasFaltantes(lat, lng);
+  } catch (error) {
+    console.error('No se pudo generar el mapa:', error);
+    mapaStatus.textContent = 'No se pudo generar la imagen del mapa: ' + error.message;
+    mapaStatus.className = 'form-status error';
+  }
+  renderPreview();
+}
+
+async function actualizarMapaDesdeFormulario() {
+  const direccion = inputDireccion.value.trim();
+  const zona = inputZona.value.trim();
+  if (!direccion && !zona) {
+    mapaPreview.innerHTML = '<p class="mapa-vacio">Escribe la dirección y la zona, luego pulsa "Buscar en el mapa".</p>';
+    mapaLat = null;
+    mapaLng = null;
+    return;
+  }
+  mapaStatus.textContent = 'Buscando ubicación…';
+  mapaStatus.className = 'form-status';
+  try {
+    const coords = await geocodificarDireccion(direccion, zona);
+    if (!coords) {
+      mapaStatus.textContent = 'No se encontró esa dirección en el mapa. Prueba a simplificarla (solo calle y número) o escribe solo la zona/ciudad. Puedes seguir guardando el dossier igualmente.';
+      mapaStatus.className = 'form-status error';
+      return;
+    }
+    mapaLat = coords.lat;
+    mapaLng = coords.lng;
+    await mostrarMapa(coords.lat, coords.lng);
+    mapaStatus.textContent = coords.aproximado
+      ? 'No se encontró la dirección exacta — mostrando la ubicación aproximada de la zona.'
+      : '';
+    mapaStatus.className = coords.aproximado ? 'form-status' : 'form-status ok';
+  } catch (error) {
+    mapaStatus.textContent = 'No se pudo generar el mapa: ' + error.message;
+    mapaStatus.className = 'form-status error';
+  }
+}
+
+document.getElementById('buscar-mapa-btn').addEventListener('click', actualizarMapaDesdeFormulario);
 
 function escapeHtml(texto) {
   const div = document.createElement('div');
@@ -119,6 +548,28 @@ function escapeHtml(texto) {
 function formatearPrecio(precio) {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(precio);
 }
+
+// --- Selector de moneda de visualización (solo orientativo, no vinculante) ---
+let tasasCambio = null; // caché: { USD: 1.14, GBP: 0.85 }
+
+async function obtenerTasasCambio() {
+  if (tasasCambio) return tasasCambio;
+  try {
+    const respuesta = await fetch('https://api.frankfurter.dev/v1/latest?from=EUR&to=USD,GBP');
+    if (!respuesta.ok) return null;
+    const datos = await respuesta.json();
+    tasasCambio = datos.rates;
+    return tasasCambio;
+  } catch (error) {
+    console.error('No se pudieron obtener las tasas de cambio:', error);
+    return null;
+  }
+}
+
+document.getElementById('d-currency').addEventListener('change', async (evento) => {
+  if (evento.target.value !== 'EUR') await obtenerTasasCambio();
+  renderPreview();
+});
 
 // --- Cargar lista de dossiers ---
 async function cargarDossiers() {
@@ -135,9 +586,11 @@ async function cargarDossiers() {
     }
     if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
     const dossiers = await respuesta.json();
+    todosLosDossiers = dossiers; // caché reutilizada también para la comparativa de precio/m²
     renderListaDossiers(dossiers);
     dossiersStatus.textContent = `${dossiers.length} dossier(s)`;
     dossiersStatus.className = 'form-status ok';
+    renderPreview();
   } catch (error) {
     dossiersStatus.textContent = 'Error al cargar: ' + error.message;
     dossiersStatus.className = 'form-status error';
@@ -202,10 +655,16 @@ function abrirEditor(dossier) {
   galeriaSeleccionada = [];
   coverExistenteUrl = dossier?.cover_image_url || null;
   floorplanExistenteUrl = dossier?.floor_plan_url || null;
-  galeriaExistente = [...(dossier?.gallery_urls || [])];
+  galeriaExistente = dossier?.gallery && dossier.gallery.length
+    ? dossier.gallery.map((foto) => ({ ...foto }))
+    : (dossier?.gallery_urls || []).map((url) => ({ url, caption: '' }));
   renderPreviewUnico(previewCover, coverExistenteUrl, inputCover);
   renderPreviewUnico(previewFloorplan, floorplanExistenteUrl, inputFloorplan);
   renderPreviewGaleria();
+
+  puntosInteres = {};
+  (dossier?.points_of_interest || []).forEach((p) => { puntosInteres[p.category] = p.detail || ''; });
+  renderGridPOI();
 
   document.getElementById('d-title').value = dossier?.title || '';
   document.getElementById('d-address').value = dossier?.address || '';
@@ -219,6 +678,26 @@ function abrirEditor(dossier) {
   document.getElementById('d-ibi').value = dossier?.ibi ?? '';
   document.getElementById('d-description').value = dossier?.description || '';
   document.getElementById('d-area').value = dossier?.area_info || '';
+  document.getElementById('d-currency').value = 'EUR';
+  document.getElementById('d-insurance').value = dossier?.annual_insurance_estimate ?? '';
+  document.getElementById('d-build-year').value = dossier?.build_year ?? '';
+  document.getElementById('d-renovation-year').value = dossier?.renovation_year ?? '';
+  document.getElementById('d-orientation').value = dossier?.orientation || '';
+  document.getElementById('d-garage').value = dossier?.garage_spaces ?? '';
+  document.getElementById('d-furnished').value = dossier?.furnished || '';
+  document.getElementById('d-storage').checked = !!dossier?.storage_room;
+  document.getElementById('d-cadastral').value = dossier?.cadastral_reference || '';
+  document.getElementById('d-legal-status').value = dossier?.legal_status || '';
+
+  mapaLat = dossier?.lat ?? null;
+  mapaLng = dossier?.lng ?? null;
+  mapaImagenDataUrl = null;
+  mapaStatus.textContent = '';
+  if (mapaLat && mapaLng) {
+    setTimeout(() => mostrarMapa(mapaLat, mapaLng), 0);
+  } else {
+    mapaPreview.innerHTML = '<p class="mapa-vacio">Escribe la dirección y la zona, luego pulsa "Buscar en el mapa".</p>';
+  }
 
   if (dossier?.pdf_url) {
     verPdfLink.href = dossier.pdf_url;
@@ -293,7 +772,7 @@ async function eliminarDossier(dossier) {
       extraerRutaStorage(dossier.cover_image_url),
       extraerRutaStorage(dossier.floor_plan_url),
       extraerRutaStorage(dossier.pdf_url),
-      ...(dossier.gallery_urls || []).map(extraerRutaStorage),
+      ...(dossier.gallery || []).map((foto) => extraerRutaStorage(foto.url)),
     ]);
 
     if (dossierActualId === dossier.id) {
@@ -309,17 +788,88 @@ async function eliminarDossier(dossier) {
 
 eliminarDossierBtn.addEventListener('click', () => eliminarDossier(dossierActual));
 
+// Dibuja el rombo + skyline del logo como marca de agua semitransparente en
+// la esquina inferior derecha: blanco con un contorno oscuro fino detrás,
+// para que se lea igual sobre fotos claras y oscuras.
+function dibujarMarcaDeAgua(ctx, anchoPx, altoPx) {
+  const tamano = Math.max(36, Math.min(anchoPx, altoPx) * 0.12);
+  const margen = tamano * 0.4;
+  const cx = anchoPx - tamano / 2 - margen;
+  const cy = altoPx - tamano / 2 - margen;
+  const escala = tamano / 80;
+
+  ctx.save();
+  ctx.globalAlpha = 0.85;
+  ctx.translate(cx - tamano / 2, cy - tamano / 2);
+  ctx.scale(escala, escala);
+
+  ctx.beginPath();
+  ctx.moveTo(40, 6);
+  ctx.lineTo(74, 40);
+  ctx.lineTo(40, 74);
+  ctx.lineTo(6, 40);
+  ctx.closePath();
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = 'rgba(78, 65, 59, 0.7)';
+  ctx.stroke();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(78, 65, 59, 0.5)';
+  ctx.fillRect(25.5, 37.5, 7, 17);
+  ctx.fillRect(36.5, 27.5, 7, 27);
+  ctx.fillRect(47.5, 33.5, 7, 21);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(26, 38, 6, 16);
+  ctx.fillRect(37, 28, 6, 26);
+  ctx.fillRect(48, 34, 6, 20);
+
+  ctx.restore();
+}
+
+// Estampa la marca de agua sobre una imagen subida por el usuario y devuelve
+// un nuevo File con el resultado. Si algo falla, se sube la imagen original
+// sin marca en vez de bloquear la subida.
+function aplicarMarcaDeAgua(file) {
+  return new Promise((resolve) => {
+    const lector = new FileReader();
+    lector.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        dibujarMarcaDeAgua(ctx, canvas.width, canvas.height);
+        const tipoSalida = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        canvas.toBlob((blob) => {
+          resolve(blob ? new File([blob], file.name, { type: tipoSalida }) : file);
+        }, tipoSalida, 0.92);
+      };
+      img.onerror = () => resolve(file);
+      img.src = lector.result;
+    };
+    lector.onerror = () => resolve(file);
+    lector.readAsDataURL(file);
+  });
+}
+
 // --- Subir una imagen a Supabase Storage, devuelve la URL pública ---
-async function subirImagen(file, carpeta) {
+async function subirImagen(file, carpeta, conMarcaDeAgua = false) {
+  const archivoFinal = (conMarcaDeAgua && file.type.startsWith('image/'))
+    ? await aplicarMarcaDeAgua(file)
+    : file;
   const nombreArchivo = `${carpeta}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
   const respuesta = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${nombreArchivo}`, {
     method: 'POST',
     headers: {
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': `Bearer ${getToken()}`,
-      'Content-Type': file.type,
+      'Content-Type': archivoFinal.type,
     },
-    body: file,
+    body: archivoFinal,
   });
   if (respuesta.status === 401 || respuesta.status === 403) {
     sessionStorage.removeItem('admin-token');
@@ -354,24 +904,37 @@ dossierForm.addEventListener('submit', async (evento) => {
       ibi: document.getElementById('d-ibi').value ? Number(document.getElementById('d-ibi').value) : null,
       description: document.getElementById('d-description').value || null,
       area_info: document.getElementById('d-area').value || null,
+      points_of_interest: Object.entries(puntosInteres).map(([category, detail]) => ({ category, detail })),
+      lat: mapaLat,
+      lng: mapaLng,
+      annual_insurance_estimate: document.getElementById('d-insurance').value ? Number(document.getElementById('d-insurance').value) : null,
+      build_year: document.getElementById('d-build-year').value ? Number(document.getElementById('d-build-year').value) : null,
+      renovation_year: document.getElementById('d-renovation-year').value ? Number(document.getElementById('d-renovation-year').value) : null,
+      orientation: document.getElementById('d-orientation').value || null,
+      garage_spaces: document.getElementById('d-garage').value ? Number(document.getElementById('d-garage').value) : null,
+      furnished: document.getElementById('d-furnished').value || null,
+      storage_room: document.getElementById('d-storage').checked,
+      cadastral_reference: document.getElementById('d-cadastral').value || null,
+      legal_status: document.getElementById('d-legal-status').value || null,
     };
 
     // Portada: archivo nuevo > la que ya había (si no se quitó) > ninguna
     datos.cover_image_url = inputCover.files[0]
-      ? await subirImagen(inputCover.files[0], 'portadas')
+      ? await subirImagen(inputCover.files[0], 'portadas', true)
       : coverExistenteUrl;
 
     // Plano: mismo criterio
     datos.floor_plan_url = inputFloorplan.files[0]
-      ? await subirImagen(inputFloorplan.files[0], 'planos')
+      ? await subirImagen(inputFloorplan.files[0], 'planos', true)
       : floorplanExistenteUrl;
 
-    // Galería: las que ya había (menos las quitadas) + las nuevas subidas
-    const urlsGaleria = [...galeriaExistente];
-    for (const file of galeriaSeleccionada) {
-      urlsGaleria.push(await subirImagen(file, 'galeria'));
+    // Galería: las que ya había (menos las quitadas) + las nuevas subidas, con sus pies de foto
+    const fotosGaleria = galeriaExistente.map((foto) => ({ url: foto.url, caption: foto.caption || null }));
+    for (const item of galeriaSeleccionada) {
+      const url = await subirImagen(item.file, 'galeria', true);
+      fotosGaleria.push({ url, caption: item.caption || null });
     }
-    datos.gallery_urls = urlsGaleria;
+    datos.gallery = fotosGaleria;
 
     let dossierGuardado;
     if (dossierActualId) {
@@ -430,7 +993,7 @@ dossierForm.addEventListener('submit', async (evento) => {
     galeriaSeleccionada = [];
     coverExistenteUrl = dossierGuardado.cover_image_url || null;
     floorplanExistenteUrl = dossierGuardado.floor_plan_url || null;
-    galeriaExistente = [...(dossierGuardado.gallery_urls || [])];
+    galeriaExistente = (dossierGuardado.gallery || []).map((foto) => ({ ...foto }));
     renderPreviewUnico(previewCover, coverExistenteUrl, inputCover);
     renderPreviewUnico(previewFloorplan, floorplanExistenteUrl, inputFloorplan);
     renderPreviewGaleria();
@@ -444,6 +1007,9 @@ dossierForm.addEventListener('submit', async (evento) => {
 });
 
 // --- Vista previa (es exactamente lo que se convierte en PDF) ---
+// Orden inspirado en dossiers comerciales profesionales (tipo Pryconsa):
+// portada -> ubicación -> datos técnicos -> descripción -> galería con pies
+// de foto -> plano -> puntos de interés con icono -> contacto.
 function renderPreview() {
   const titulo = document.getElementById('d-title').value || 'Título del inmueble';
   const direccion = document.getElementById('d-address').value;
@@ -457,10 +1023,158 @@ function renderPreview() {
   const ibi = document.getElementById('d-ibi').value;
   const descripcion = document.getElementById('d-description').value;
   const areaInfo = document.getElementById('d-area').value;
+  const moneda = document.getElementById('d-currency').value;
+  const seguro = document.getElementById('d-insurance').value;
+  const anoConstruccion = document.getElementById('d-build-year').value;
+  const anoReforma = document.getElementById('d-renovation-year').value;
+  const orientacion = document.getElementById('d-orientation').value;
+  const garaje = document.getElementById('d-garage').value;
+  const amueblado = document.getElementById('d-furnished').value;
+  const trastero = document.getElementById('d-storage').checked;
+  const catastro = document.getElementById('d-cadastral').value;
+  const situacionLegal = document.getElementById('d-legal-status').value;
+
+  const ETIQUETAS_ORIENTACION = { norte: 'Norte', sur: 'Sur', este: 'Este', oeste: 'Oeste', noreste: 'Noreste', noroeste: 'Noroeste', sureste: 'Sureste', suroeste: 'Suroeste' };
+  const ETIQUETAS_AMUEBLADO = { si: 'Sí', no: 'No', parcial: 'Parcialmente' };
+
+  // Precio mostrado en portada: convertido si se eligió otra moneda (las
+  // tasas se cargan al cambiar el selector; si aún no llegan, se muestra en €).
+  let precioMostrado = precio ? formatearPrecio(Number(precio)) : '';
+  let notaMoneda = '';
+  if (precio && moneda !== 'EUR') {
+    if (tasasCambio && tasasCambio[moneda]) {
+      const convertido = Number(precio) * tasasCambio[moneda];
+      const simbolo = moneda === 'USD' ? '$' : '£';
+      precioMostrado = `${simbolo}${Math.round(convertido).toLocaleString('es-ES')} <small>(${formatearPrecio(Number(precio))})</small>`;
+      notaMoneda = 'Tipo de cambio orientativo, no vinculante.';
+    } else {
+      precioMostrado += ' (convirtiendo…)';
+    }
+  }
+
+  // Gasto anual total aproximado: IBI + comunidad (mensual → anual) + seguro estimado
+  const costeAnual = (ibi ? Number(ibi) : 0) + (comunidad ? Number(comunidad) * 12 : 0) + (seguro ? Number(seguro) : 0);
+
+  // Comparativa de precio/m² frente a otros dossiers de la misma zona (solo datos internos)
+  const comparativa = compararPrecioM2(dossierActualId, zona, precio ? Number(precio) : null, superficie ? Number(superficie) : null);
+  let textoComparativa = '';
+  if (comparativa) {
+    textoComparativa = `${comparativa.precioM2.toFixed(0)} €/m²`;
+    if (comparativa.mediaM2) {
+      const diferencia = ((comparativa.precioM2 - comparativa.mediaM2) / comparativa.mediaM2) * 100;
+      const texto = diferencia > 5
+        ? `${diferencia.toFixed(0)}% por encima de la media`
+        : diferencia < -5
+          ? `${Math.abs(diferencia).toFixed(0)}% por debajo de la media`
+          : 'en línea con la media';
+      textoComparativa += ` — ${texto} de "${escapeHtml(zona)}" (${comparativa.comparables} inmueble${comparativa.comparables === 1 ? '' : 's'})`;
+    }
+  }
 
   const portada = dossierActual.cover_image_url || '';
   const plano = dossierActual.floor_plan_url || '';
-  const galeria = dossierActual.gallery_urls || [];
+  const galeria = dossierActual.gallery && dossierActual.gallery.length
+    ? dossierActual.gallery
+    : (dossierActual.gallery_urls || []).map((url) => ({ url, caption: null }));
+
+  const seccionGaleria = galeria.length
+    ? `<div class="dossier-pdf-seccion">
+         <h2>Galería</h2>
+         <div class="dossier-pdf-galeria">
+           ${galeria.map((foto) => `
+             <figure>
+               <img src="${foto.url}">
+               ${foto.caption ? `<figcaption>${escapeHtml(foto.caption)}</figcaption>` : ''}
+             </figure>
+           `).join('')}
+         </div>
+       </div>`
+    : '';
+
+  // Ubicación: dirección siempre arriba, luego mapa y/o notas de la zona
+  // (según lo que haya), y los puntos de interés en tarjetas al final.
+  const poisActivos = CATEGORIAS_POI.filter((c) => Object.prototype.hasOwnProperty.call(puntosInteres, c.key));
+
+  let bloqueMapaNotas = '';
+  if (mapaImagenDataUrl && areaInfo) {
+    bloqueMapaNotas = `
+      <div class="dossier-pdf-ubicacion-grid">
+        <img class="dossier-pdf-mapa" src="${mapaImagenDataUrl}" alt="Mapa de ubicación">
+        <div class="dossier-pdf-ubicacion-notas">
+          <h3>La zona</h3>
+          <p>${escapeHtml(areaInfo).replace(/\n/g, '<br>')}</p>
+        </div>
+      </div>`;
+  } else if (mapaImagenDataUrl) {
+    bloqueMapaNotas = `<img class="dossier-pdf-mapa" src="${mapaImagenDataUrl}" alt="Mapa de ubicación">`;
+  } else if (areaInfo) {
+    bloqueMapaNotas = `
+      <div class="dossier-pdf-ubicacion-notas dossier-pdf-ubicacion-notas-sola">
+        <h3>La zona</h3>
+        <p>${escapeHtml(areaInfo).replace(/\n/g, '<br>')}</p>
+      </div>`;
+  }
+
+  const seccionUbicacion = (mapaImagenDataUrl || poisActivos.length || areaInfo || direccion || zona)
+    ? `<div class="dossier-pdf-seccion">
+         <h2>Ubicación y puntos de interés</h2>
+         ${(direccion || zona) ? `
+         <p class="dossier-pdf-direccion">
+           <span class="dossier-pdf-direccion-icono">${svgIcono(ICONO_PIN, 14)}</span>
+           ${escapeHtml([direccion, zona].filter(Boolean).join(' · '))}
+         </p>` : ''}
+         ${bloqueMapaNotas}
+         ${poisActivos.length ? `
+         <div class="dossier-pdf-poi">
+           ${poisActivos.map((c) => `
+             <div class="dossier-pdf-poi-item">
+               <span class="dossier-pdf-poi-icono">${svgIcono(c.icon, 15)}</span>
+               <span class="dossier-pdf-poi-texto">
+                 <b>${escapeHtml(c.label)}</b>
+                 ${puntosInteres[c.key] ? `<small>${escapeHtml(puntosInteres[c.key])}</small>` : ''}
+               </span>
+             </div>
+           `).join('')}
+         </div>` : ''}
+       </div>`
+    : '';
+
+  // Divididos en dos grupos para que el bloque no sea una única lista plana:
+  // "Datos" (tamaño y confort) y "Datos técnicos" (construcción y economía).
+  const datosGenerales = [
+    superficie ? `<div><b>Superficie</b><span>${superficie} m²</span></div>` : '',
+    habitaciones ? `<div><b>Habitaciones</b><span>${habitaciones}</span></div>` : '',
+    banos ? `<div><b>Baños</b><span>${banos}</span></div>` : '',
+    garaje ? `<div><b>Plazas de garaje</b><span>${garaje}</span></div>` : '',
+    trastero ? `<div><b>Trastero</b><span>Sí</span></div>` : '',
+    amueblado ? `<div><b>Amueblado</b><span>${ETIQUETAS_AMUEBLADO[amueblado] || amueblado}</span></div>` : '',
+  ].join('');
+
+  const datosTecnicos = [
+    anoConstruccion ? `<div><b>Año construcción</b><span>${anoConstruccion}</span></div>` : '',
+    anoReforma ? `<div><b>Última reforma</b><span>${anoReforma}</span></div>` : '',
+    orientacion ? `<div><b>Orientación</b><span>${ETIQUETAS_ORIENTACION[orientacion] || orientacion}</span></div>` : '',
+    energia ? `<div><b>Cert. energética</b><span>${energia}</span></div>` : '',
+    comunidad ? `<div><b>Gastos comunidad</b><span>${comunidad} €/mes</span></div>` : '',
+    ibi ? `<div><b>IBI anual</b><span>${ibi} €</span></div>` : '',
+  ].join('');
+
+  const seccionLegal = (catastro || situacionLegal)
+    ? `<div class="dossier-pdf-legal">
+         ${situacionLegal ? `<p>${escapeHtml(situacionLegal)}</p>` : ''}
+         ${catastro ? `<p class="dossier-pdf-catastro">Ref. catastral: ${escapeHtml(catastro)}</p>` : ''}
+       </div>`
+    : '';
+
+  const seccionDestacados = (textoComparativa || costeAnual)
+    ? `<div class="dossier-pdf-destacados">
+         ${textoComparativa ? `<div class="dossier-pdf-destacado"><b>Precio/m²</b><span>${textoComparativa}</span></div>` : ''}
+         ${costeAnual ? `<div class="dossier-pdf-destacado"><b>Coste de mantenimiento anual</b><span>~${formatearPrecio(costeAnual)}</span></div>` : ''}
+       </div>`
+    : '';
+
+  const numeroWhatsapp = CONTACTO_TELEFONO.replace(/[^0-9]/g, '');
+  const mensajeWhatsapp = encodeURIComponent(`Hola, me interesa el inmueble "${titulo}"`);
 
   preview.innerHTML = `
     <div class="dossier-pdf">
@@ -468,36 +1182,46 @@ function renderPreview() {
         <div class="dossier-pdf-portada-overlay">
           <h1>${escapeHtml(titulo)}</h1>
           <p>${escapeHtml(direccion || zona || '')}</p>
-          ${precio ? `<span class="dossier-pdf-precio">${formatearPrecio(Number(precio))}</span>` : ''}
-        </div>
-      </div>
-
-      <div class="dossier-pdf-seccion">
-        <h2>Datos técnicos</h2>
-        <div class="dossier-pdf-datos">
-          ${superficie ? `<div><b>Superficie</b><span>${superficie} m²</span></div>` : ''}
-          ${habitaciones ? `<div><b>Habitaciones</b><span>${habitaciones}</span></div>` : ''}
-          ${banos ? `<div><b>Baños</b><span>${banos}</span></div>` : ''}
-          ${energia ? `<div><b>Cert. energética</b><span>${energia}</span></div>` : ''}
-          ${comunidad ? `<div><b>Gastos comunidad</b><span>${comunidad} €/mes</span></div>` : ''}
-          ${ibi ? `<div><b>IBI anual</b><span>${ibi} €</span></div>` : ''}
+          ${precio ? `<span class="dossier-pdf-precio">${precioMostrado}</span>` : ''}
+          ${notaMoneda ? `<p class="dossier-pdf-nota-moneda">${notaMoneda}</p>` : ''}
         </div>
       </div>
 
       ${descripcion ? `<div class="dossier-pdf-seccion"><h2>Descripción</h2><p>${escapeHtml(descripcion).replace(/\n/g, '<br>')}</p></div>` : ''}
 
-      ${galeria.length ? `<div class="dossier-pdf-seccion"><h2>Galería</h2><div class="dossier-pdf-galeria">${galeria.map((url) => `<img src="${url}">`).join('')}</div></div>` : ''}
+      ${datosGenerales ? `
+      <div class="dossier-pdf-seccion">
+        <h2>Datos</h2>
+        <div class="dossier-pdf-datos">${datosGenerales}</div>
+      </div>` : ''}
+
+      ${(datosTecnicos || seccionLegal || seccionDestacados) ? `
+      <div class="dossier-pdf-seccion">
+        <h2>Datos técnicos</h2>
+        ${datosTecnicos ? `<div class="dossier-pdf-datos">${datosTecnicos}</div>` : ''}
+        ${seccionLegal}
+        ${seccionDestacados}
+      </div>` : ''}
+
+      ${seccionUbicacion}
+
+      ${seccionGaleria}
 
       ${plano ? `<div class="dossier-pdf-seccion"><h2>Plano de planta</h2><img class="dossier-pdf-plano" src="${plano}"></div>` : ''}
 
-      ${areaInfo ? `<div class="dossier-pdf-seccion"><h2>Zona y puntos de interés</h2><p>${escapeHtml(areaInfo).replace(/\n/g, '<br>')}</p></div>` : ''}
-
       <div class="dossier-pdf-contacto">
         <p><b>Invest Spain Properties</b></p>
-        <p>${CONTACTO_EMAIL}</p>
+        <p>${CONTACTO_EMAIL} · ${CONTACTO_TELEFONO}</p>
+        <a class="dossier-pdf-whatsapp" href="https://wa.me/${numeroWhatsapp}?text=${mensajeWhatsapp}" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
       </div>
     </div>
   `;
+
+  dossierPreviewEditando.hidden = !dossierActualId;
+  if (dossierActualId) {
+    dossierPreviewEditando.textContent = `Editando: ${titulo}`;
+  }
+  dossierPreviewAcciones.hidden = !dossierActualId;
 }
 
 // Vuelve a pintar la vista previa en vivo mientras se rellena el formulario
@@ -739,29 +1463,37 @@ segEstado.addEventListener('change', async () => {
   }
 });
 
-// --- Comparativa de precio frente a otros inmuebles de la misma zona ---
+// --- Comparativa de precio/m² frente a otros dossiers de la misma zona ---
+// (solo datos internos — nunca de fuentes externas). La usan tanto la vista
+// previa del dossier principal como la pestaña de Seguimiento.
+function compararPrecioM2(idActual, region, price, surfaceM2) {
+  if (!price || !surfaceM2) return null;
+  const precioM2 = price / surfaceM2;
+  const comparables = todosLosDossiers.filter((d) =>
+    d.id !== idActual &&
+    d.region &&
+    region &&
+    d.region.trim().toLowerCase() === region.trim().toLowerCase() &&
+    d.price && d.surface_m2,
+  );
+  if (comparables.length === 0) return { precioM2, mediaM2: null, comparables: 0 };
+  const mediaM2 = comparables.reduce((suma, d) => suma + d.price / d.surface_m2, 0) / comparables.length;
+  return { precioM2, mediaM2, comparables: comparables.length };
+}
+
 function renderComparativa(dossier) {
   if (!dossier.price || !dossier.surface_m2) {
     seguimientoComparativa.textContent = 'Añade precio y superficie en el dossier para ver la comparativa.';
     return;
   }
-  const precioM2 = dossier.price / dossier.surface_m2;
+  const resultado = compararPrecioM2(dossier.id, dossier.region, dossier.price, dossier.surface_m2);
 
-  const comparables = todosLosDossiers.filter((d) =>
-    d.id !== dossier.id &&
-    d.region &&
-    dossier.region &&
-    d.region.trim().toLowerCase() === dossier.region.trim().toLowerCase() &&
-    d.price && d.surface_m2,
-  );
-
-  if (comparables.length === 0) {
-    seguimientoComparativa.innerHTML = `<b>${precioM2.toFixed(0)} €/m²</b> — todavía no hay otros inmuebles en "${escapeHtml(dossier.region)}" para comparar.`;
+  if (!resultado.mediaM2) {
+    seguimientoComparativa.innerHTML = `<b>${resultado.precioM2.toFixed(0)} €/m²</b> — todavía no hay otros inmuebles en "${escapeHtml(dossier.region)}" para comparar.`;
     return;
   }
 
-  const mediaM2 = comparables.reduce((suma, d) => suma + d.price / d.surface_m2, 0) / comparables.length;
-  const diferencia = ((precioM2 - mediaM2) / mediaM2) * 100;
+  const diferencia = ((resultado.precioM2 - resultado.mediaM2) / resultado.mediaM2) * 100;
   const texto = diferencia > 5
     ? `un ${diferencia.toFixed(0)}% por encima de la media`
     : diferencia < -5
@@ -769,8 +1501,8 @@ function renderComparativa(dossier) {
       : 'en línea con la media';
 
   seguimientoComparativa.innerHTML = `
-    <b>${precioM2.toFixed(0)} €/m²</b> este inmueble.
-    Media en "${escapeHtml(dossier.region)}" (${comparables.length} inmueble(s)): <b>${mediaM2.toFixed(0)} €/m²</b>.
+    <b>${resultado.precioM2.toFixed(0)} €/m²</b> este inmueble.
+    Media en "${escapeHtml(dossier.region)}" (${resultado.comparables} inmueble(s)): <b>${resultado.mediaM2.toFixed(0)} €/m²</b>.
     Está ${texto}.
   `;
 }
