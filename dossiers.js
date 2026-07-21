@@ -5,6 +5,16 @@ const SUPABASE_ANON_KEY = "sb_publishable_8FvlGTc8ICk04jqAH0yzzg_Q84Jp1UQ";
 const STORAGE_BUCKET = "dossiers";
 const CONTACTO_EMAIL = "jorgeceladaa2@gmail.com";
 const CONTACTO_TELEFONO = "+34 682548468";
+const CONTACTO_NOMBRE = "Jorge Celada";
+const CONTACTO_ROL = "Asesor de inversión inmobiliaria internacional";
+
+// Agrupación de categorías de puntos de interés para la sección "Ubicación"
+// de la nueva plantilla del PDF (Movilidad / Servicios / Ocio).
+const GRUPOS_CONTEXTO_POI = [
+  { titulo: 'Movilidad', keys: ['airport', 'transport'] },
+  { titulo: 'Servicios', keys: ['schools', 'shopping', 'hospital', 'bank', 'offices'] },
+  { titulo: 'Ocio', keys: ['restaurants', 'cafes', 'gym', 'parks', 'beach'] },
+];
 
 // Categorías fijas de puntos de interés, cada una con su icono (trazo simple,
 // mismo estilo en toda la app). El icono es el contenido interior de un <svg>.
@@ -26,8 +36,6 @@ const CATEGORIAS_POI = [
 function svgIcono(icono, tamano) {
   return `<svg width="${tamano}" height="${tamano}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${icono}</svg>`;
 }
-
-const ICONO_PIN = '<circle cx="12" cy="10" r="3"/><path d="M12 21c-4-4.5-7-8-7-11a7 7 0 0 1 14 0c0 3-3 6.5-7 11Z"/>';
 
 // Término de búsqueda en Nominatim para cada categoría, para poder calcular
 // la distancia automáticamente. Es una búsqueda por relevancia (no hay un
@@ -1060,17 +1068,22 @@ function renderPreview() {
 
   // Comparativa de precio/m² frente a otros dossiers de la misma zona (solo datos internos)
   const comparativa = compararPrecioM2(dossierActualId, zona, precio ? Number(precio) : null, superficie ? Number(superficie) : null);
-  let textoComparativa = '';
+
+  // Precio/m² comparado con la zona: mismo dato ya calculado arriba, solo
+  // cambia cómo se presenta (número grande + una línea de contexto).
+  let precioM2Valor = '';
+  let precioM2Caption = '';
   if (comparativa) {
-    textoComparativa = `${comparativa.precioM2.toFixed(0)} €/m²`;
+    precioM2Valor = `${comparativa.precioM2.toFixed(0)} €/m²`;
     if (comparativa.mediaM2) {
       const diferencia = ((comparativa.precioM2 - comparativa.mediaM2) / comparativa.mediaM2) * 100;
-      const texto = diferencia > 5
-        ? `${diferencia.toFixed(0)}% por encima de la media`
+      precioM2Caption = diferencia > 5
+        ? `↑ ${diferencia.toFixed(0)}% vs. media de "${escapeHtml(zona)}"`
         : diferencia < -5
-          ? `${Math.abs(diferencia).toFixed(0)}% por debajo de la media`
-          : 'en línea con la media';
-      textoComparativa += ` — ${texto} de "${escapeHtml(zona)}" (${comparativa.comparables} inmueble${comparativa.comparables === 1 ? '' : 's'})`;
+          ? `↓ ${Math.abs(diferencia).toFixed(0)}% vs. media de "${escapeHtml(zona)}"`
+          : `En línea con la media de "${escapeHtml(zona)}"`;
+    } else {
+      precioM2Caption = `Sin otros inmuebles en "${escapeHtml(zona)}" para comparar todavía`;
     }
   }
 
@@ -1080,143 +1093,239 @@ function renderPreview() {
     ? dossierActual.gallery
     : (dossierActual.gallery_urls || []).map((url) => ({ url, caption: null }));
 
-  const seccionGaleria = galeria.length
-    ? `<div class="dossier-pdf-seccion">
-         <h2>Galería</h2>
-         <div class="dossier-pdf-galeria">
-           ${galeria.map((foto) => `
-             <figure>
-               <img src="${foto.url}">
-               ${foto.caption ? `<figcaption>${escapeHtml(foto.caption)}</figcaption>` : ''}
-             </figure>
-           `).join('')}
-         </div>
-       </div>`
-    : '';
+  // Si hay más de 6 fotos, mostramos solo las 5 primeras + una tesela
+  // "+N fotos más" en vez de alargar la página con toda la galería.
+  const galeriaDesborda = galeria.length > 6;
+  const galeriaVisible = galeriaDesborda ? galeria.slice(0, 5) : galeria;
+  const galeriaRestantes = galeriaDesborda ? galeria.length - 5 : 0;
 
-  // Ubicación: dirección siempre arriba, luego mapa y/o notas de la zona
-  // (según lo que haya), y los puntos de interés en tarjetas al final.
-  const poisActivos = CATEGORIAS_POI.filter((c) => Object.prototype.hasOwnProperty.call(puntosInteres, c.key));
+  // Puntos de interés agrupados en Movilidad / Servicios / Ocio para la
+  // sección de ubicación (en vez de una única rejilla de tarjetas).
+  const gruposContexto = GRUPOS_CONTEXTO_POI
+    .map((grupo) => ({
+      titulo: grupo.titulo,
+      items: CATEGORIAS_POI.filter((c) => grupo.keys.includes(c.key) && Object.prototype.hasOwnProperty.call(puntosInteres, c.key)),
+    }))
+    .filter((grupo) => grupo.items.length);
 
-  let bloqueMapaNotas = '';
-  if (mapaImagenDataUrl && areaInfo) {
-    bloqueMapaNotas = `
-      <div class="dossier-pdf-ubicacion-grid">
-        <img class="dossier-pdf-mapa" src="${mapaImagenDataUrl}" alt="Mapa de ubicación">
-        <div class="dossier-pdf-ubicacion-notas">
-          <h3>La zona</h3>
-          <p>${escapeHtml(areaInfo).replace(/\n/g, '<br>')}</p>
-        </div>
-      </div>`;
-  } else if (mapaImagenDataUrl) {
-    bloqueMapaNotas = `<img class="dossier-pdf-mapa" src="${mapaImagenDataUrl}" alt="Mapa de ubicación">`;
-  } else if (areaInfo) {
-    bloqueMapaNotas = `
-      <div class="dossier-pdf-ubicacion-notas dossier-pdf-ubicacion-notas-sola">
-        <h3>La zona</h3>
-        <p>${escapeHtml(areaInfo).replace(/\n/g, '<br>')}</p>
-      </div>`;
+  // Barra de estadísticas de portada de la página de datos
+  const statsBarra = [
+    superficie ? { valor: `${superficie} m²`, etiqueta: 'Superficie' } : null,
+    habitaciones ? { valor: habitaciones, etiqueta: 'Habitaciones' } : null,
+    banos ? { valor: banos, etiqueta: 'Baños' } : null,
+    garaje ? { valor: garaje, etiqueta: 'Garaje' } : null,
+    orientacion ? { valor: ETIQUETAS_ORIENTACION[orientacion] || orientacion, etiqueta: 'Orientación' } : null,
+  ].filter(Boolean);
+
+  const badgesEstado = [situacionLegal || null, energia ? `Cert. energético ${energia}` : null].filter(Boolean);
+
+  // "Datos de la vivienda" en 3 grupos (Distribución / Estado / Gastos) en
+  // vez de una única lista plana de todos los campos.
+  const grupoDistribucion = [
+    superficie ? { etiqueta: 'Superficie construida', valor: `${superficie} m²` } : null,
+    habitaciones ? { etiqueta: 'Habitaciones', valor: habitaciones } : null,
+    banos ? { etiqueta: 'Baños', valor: banos } : null,
+    trastero ? { etiqueta: 'Trastero', valor: 'Sí' } : null,
+  ].filter(Boolean);
+
+  const grupoEstadoVivienda = [
+    anoConstruccion ? { etiqueta: 'Año construcción', valor: anoConstruccion } : null,
+    anoReforma ? { etiqueta: 'Última reforma', valor: anoReforma } : null,
+    amueblado ? { etiqueta: 'Amueblado', valor: ETIQUETAS_AMUEBLADO[amueblado] || amueblado } : null,
+  ].filter(Boolean);
+
+  const grupoGastos = [
+    comunidad ? { etiqueta: 'Comunidad', valor: `${comunidad} €/mes` } : null,
+    ibi ? { etiqueta: 'IBI anual', valor: `${ibi} €` } : null,
+    energia ? { etiqueta: 'Cert. energético', valor: energia } : null,
+  ].filter(Boolean);
+
+  function renderGrupoDatos(titulo, filas) {
+    if (!filas.length) return '';
+    return `<div>
+      <span class="pdf-datos-grupo-titulo">${escapeHtml(titulo)}</span>
+      ${filas.map((f) => `<div class="pdf-datos-fila"><span>${escapeHtml(f.etiqueta)}</span><b>${escapeHtml(String(f.valor))}</b></div>`).join('')}
+    </div>`;
   }
 
-  const seccionUbicacion = (mapaImagenDataUrl || poisActivos.length || areaInfo || direccion || zona)
-    ? `<div class="dossier-pdf-seccion">
-         <h2>Ubicación y puntos de interés</h2>
-         ${(direccion || zona) ? `
-         <p class="dossier-pdf-direccion">
-           <span class="dossier-pdf-direccion-icono">${svgIcono(ICONO_PIN, 14)}</span>
-           ${escapeHtml([direccion, zona].filter(Boolean).join(' · '))}
-         </p>` : ''}
-         ${bloqueMapaNotas}
-         ${poisActivos.length ? `
-         <div class="dossier-pdf-poi">
-           ${poisActivos.map((c) => `
-             <div class="dossier-pdf-poi-item">
-               <span class="dossier-pdf-poi-icono">${svgIcono(c.icon, 15)}</span>
-               <span class="dossier-pdf-poi-texto">
-                 <b>${escapeHtml(c.label)}</b>
-                 ${puntosInteres[c.key] ? `<small>${escapeHtml(puntosInteres[c.key])}</small>` : ''}
-               </span>
-             </div>
-           `).join('')}
-         </div>` : ''}
-       </div>`
-    : '';
-
-  // Divididos en dos grupos para que el bloque no sea una única lista plana:
-  // "Datos" (tamaño y confort) y "Datos técnicos" (construcción y economía).
-  const datosGenerales = [
-    superficie ? `<div><b>Superficie</b><span>${superficie} m²</span></div>` : '',
-    habitaciones ? `<div><b>Habitaciones</b><span>${habitaciones}</span></div>` : '',
-    banos ? `<div><b>Baños</b><span>${banos}</span></div>` : '',
-    garaje ? `<div><b>Plazas de garaje</b><span>${garaje}</span></div>` : '',
-    trastero ? `<div><b>Trastero</b><span>Sí</span></div>` : '',
-    amueblado ? `<div><b>Amueblado</b><span>${ETIQUETAS_AMUEBLADO[amueblado] || amueblado}</span></div>` : '',
-  ].join('');
-
-  const datosTecnicos = [
-    anoConstruccion ? `<div><b>Año construcción</b><span>${anoConstruccion}</span></div>` : '',
-    anoReforma ? `<div><b>Última reforma</b><span>${anoReforma}</span></div>` : '',
-    orientacion ? `<div><b>Orientación</b><span>${ETIQUETAS_ORIENTACION[orientacion] || orientacion}</span></div>` : '',
-    energia ? `<div><b>Cert. energética</b><span>${energia}</span></div>` : '',
-    comunidad ? `<div><b>Gastos comunidad</b><span>${comunidad} €/mes</span></div>` : '',
-    ibi ? `<div><b>IBI anual</b><span>${ibi} €</span></div>` : '',
-  ].join('');
-
-  const seccionLegal = (catastro || situacionLegal)
-    ? `<div class="dossier-pdf-legal">
-         ${situacionLegal ? `<p>${escapeHtml(situacionLegal)}</p>` : ''}
-         ${catastro ? `<p class="dossier-pdf-catastro">Ref. catastral: ${escapeHtml(catastro)}</p>` : ''}
-       </div>`
-    : '';
-
-  const seccionDestacados = (textoComparativa || costeAnual)
-    ? `<div class="dossier-pdf-destacados">
-         ${textoComparativa ? `<div class="dossier-pdf-destacado"><b>Precio/m²</b><span>${textoComparativa}</span></div>` : ''}
-         ${costeAnual ? `<div class="dossier-pdf-destacado"><b>Coste de mantenimiento anual</b><span>~${formatearPrecio(costeAnual)}</span></div>` : ''}
-       </div>`
-    : '';
+  const estadoVenta = dossierActual.sale_status || 'available';
+  const etiquetaEstadoVenta = ETIQUETAS_ESTADO_VENTA[estadoVenta] || 'Disponible';
+  const referenciaDossier = 'ISP-' + (dossierActualId ? dossierActualId.replace(/-/g, '').slice(0, 4).toUpperCase() : '0000');
 
   const numeroWhatsapp = CONTACTO_TELEFONO.replace(/[^0-9]/g, '');
   const mensajeWhatsapp = encodeURIComponent(`Hola, me interesa el inmueble "${titulo}"`);
+  const inicialContacto = CONTACTO_NOMBRE.trim().charAt(0).toUpperCase();
+
+  const cabeceraPagina = (numeroPagina) => `
+    <div class="pdf-cabecera">
+      <span class="pdf-cabecera-marca"><span class="pdf-cabecera-rombo"></span>Invest Spain Properties</span>
+      <span class="pdf-cabecera-ref">${referenciaDossier} · ${numeroPagina}/04</span>
+    </div>`;
+
+  const piePagina = (esUltima) => `
+    <div class="pdf-pie">
+      <span>Invest Spain Properties</span>
+      <span>${esUltima ? 'Be First. · Documento de trabajo, no final' : 'Documento de trabajo, no final'}</span>
+    </div>`;
 
   preview.innerHTML = `
     <div class="dossier-pdf">
-      <div class="dossier-pdf-portada"${portada ? ` style="background-image:url('${portada}')"` : ''}>
-        <div class="dossier-pdf-portada-overlay">
-          <h1>${escapeHtml(titulo)}</h1>
-          <p>${escapeHtml(direccion || zona || '')}</p>
-          ${precio ? `<span class="dossier-pdf-precio">${precioMostrado}</span>` : ''}
-          ${notaMoneda ? `<p class="dossier-pdf-nota-moneda">${notaMoneda}</p>` : ''}
+
+      <section class="pdf-pagina pdf-portada">
+        <div class="pdf-portada-marca">
+          <div class="pdf-portada-rombo"></div>
+          <div class="pdf-portada-marca-nombre">Invest Spain Properties</div>
+          <div class="pdf-portada-marca-ref">Dossier confidencial · Ref. ${referenciaDossier}</div>
         </div>
-      </div>
 
-      ${descripcion ? `<div class="dossier-pdf-seccion"><h2>Descripción</h2><p>${escapeHtml(descripcion).replace(/\n/g, '<br>')}</p></div>` : ''}
+        <div class="pdf-portada-titular">
+          <h1>${escapeHtml(titulo)}</h1>
+          <div class="pdf-portada-eslogan">Be First.</div>
+        </div>
 
-      ${datosGenerales ? `
-      <div class="dossier-pdf-seccion">
-        <h2>Datos</h2>
-        <div class="dossier-pdf-datos">${datosGenerales}</div>
-      </div>` : ''}
+        ${descripcion ? `<p class="pdf-portada-texto">${escapeHtml(descripcion)}</p>` : ''}
 
-      ${(datosTecnicos || seccionLegal || seccionDestacados) ? `
-      <div class="dossier-pdf-seccion">
-        <h2>Datos técnicos</h2>
-        ${datosTecnicos ? `<div class="dossier-pdf-datos">${datosTecnicos}</div>` : ''}
-        ${seccionLegal}
-        ${seccionDestacados}
-      </div>` : ''}
+        <div class="pdf-portada-foto">
+          <span class="pdf-badge-estado">${escapeHtml(etiquetaEstadoVenta)}</span>
+          ${portada ? `<img src="${portada}" alt="">` : ''}
+          ${!portada ? '<span class="pdf-portada-foto-caption">imagen de ejemplo</span>' : ''}
+        </div>
 
-      ${seccionUbicacion}
+        <div class="pdf-portada-precio-bloque">
+          ${precio ? `<div class="pdf-portada-precio">${precioMostrado}</div>` : ''}
+          ${notaMoneda ? `<small class="pdf-portada-nota-moneda">${notaMoneda}</small>` : ''}
+          <div class="pdf-portada-direccion">${escapeHtml([direccion, zona].filter(Boolean).join(' · '))}</div>
+        </div>
 
-      ${seccionGaleria}
+        <div class="pdf-portada-disclaimer">Documento de trabajo · Uso exclusivo del destinatario</div>
+      </section>
 
-      ${plano ? `<div class="dossier-pdf-seccion"><h2>Plano de planta</h2><img class="dossier-pdf-plano" src="${plano}"></div>` : ''}
+      <section class="pdf-pagina">
+        ${cabeceraPagina('02')}
 
-      <div class="dossier-pdf-contacto">
-        <p><b>Invest Spain Properties</b></p>
-        <p>${CONTACTO_EMAIL} · ${CONTACTO_TELEFONO}</p>
-        <a class="dossier-pdf-whatsapp" href="https://wa.me/${numeroWhatsapp}?text=${mensajeWhatsapp}" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
-      </div>
+        ${statsBarra.length ? `
+        <div class="pdf-bloque pdf-stats">
+          ${statsBarra.map((s) => `<div class="pdf-stats-item"><b>${escapeHtml(String(s.valor))}</b><span>${escapeHtml(s.etiqueta)}</span></div>`).join('')}
+        </div>` : ''}
+
+        ${(precioM2Valor || costeAnual) ? `
+        <div class="pdf-bloque">
+          <span class="pdf-eyebrow">Para inversores</span>
+          <h2 class="pdf-seccion-titulo">Radiografía de la inversión</h2>
+          <div class="pdf-radiografia">
+            ${precioM2Valor ? `
+            <div class="pdf-radiografia-item">
+              <span class="pdf-eyebrow">Precio por m²</span>
+              <b>${precioM2Valor}</b>
+              ${precioM2Caption ? `<small>${precioM2Caption}</small>` : ''}
+            </div>` : ''}
+            ${costeAnual ? `
+            <div class="pdf-radiografia-item">
+              <span class="pdf-eyebrow">Mantenimiento anual</span>
+              <b>≈ ${formatearPrecio(costeAnual)}</b>
+              <small>IBI + comunidad + seguro est.</small>
+            </div>` : ''}
+          </div>
+        </div>` : ''}
+
+        ${badgesEstado.length ? `
+        <div class="pdf-bloque pdf-badges">
+          ${badgesEstado.map((b) => `<span class="pdf-badge">${escapeHtml(b)}</span>`).join('')}
+        </div>` : ''}
+        ${catastro ? `<p class="pdf-ref-catastral">Ref. catastral: ${escapeHtml(catastro)}</p>` : ''}
+
+        ${descripcion ? `
+        <div class="pdf-bloque">
+          <span class="pdf-eyebrow">Descripción</span>
+          <p class="pdf-descripcion">${escapeHtml(descripcion).replace(/\n/g, '<br>')}</p>
+        </div>` : ''}
+
+        ${(grupoDistribucion.length || grupoEstadoVivienda.length || grupoGastos.length) ? `
+        <div class="pdf-bloque">
+          <span class="pdf-eyebrow">Datos de la vivienda</span>
+          <div class="pdf-datos-vivienda">
+            ${renderGrupoDatos('Distribución', grupoDistribucion)}
+            ${renderGrupoDatos('Estado', grupoEstadoVivienda)}
+            ${renderGrupoDatos('Gastos', grupoGastos)}
+          </div>
+        </div>` : ''}
+
+        ${piePagina(false)}
+      </section>
+
+      <section class="pdf-pagina">
+        ${cabeceraPagina('03')}
+
+        <div class="pdf-bloque">
+          <span class="pdf-eyebrow">Contexto</span>
+          <h2 class="pdf-seccion-titulo">Ubicación y puntos de interés</h2>
+
+          <div class="pdf-mapa-caja">
+            ${mapaImagenDataUrl ? `<img src="${mapaImagenDataUrl}" alt="Mapa de ubicación">` : ''}
+            <span class="pdf-mapa-caption">${escapeHtml([direccion, zona].filter(Boolean).join(' · ')) || 'mapa — pendiente de dirección'}</span>
+          </div>
+
+          ${gruposContexto.length ? `
+          <div class="pdf-contexto">
+            ${gruposContexto.map((grupo) => `
+              <div class="pdf-contexto-columna">
+                <span class="pdf-eyebrow">${escapeHtml(grupo.titulo)}</span>
+                ${grupo.items.map((c) => `
+                  <div class="pdf-contexto-fila">
+                    <span>${escapeHtml(c.label)}</span>
+                    ${puntosInteres[c.key] ? `<b>${escapeHtml(puntosInteres[c.key])}</b>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            `).join('')}
+          </div>` : ''}
+
+          ${areaInfo ? `<p class="pdf-notas-zona">${escapeHtml(areaInfo).replace(/\n/g, '<br>')}</p>` : ''}
+        </div>
+
+        ${galeria.length ? `
+        <div class="pdf-bloque">
+          <span class="pdf-eyebrow">Galería</span>
+          <div class="pdf-galeria">
+            ${galeriaVisible.map((foto) => `
+              <figure>
+                <img src="${foto.url}">
+                ${foto.caption ? `<figcaption>${escapeHtml(foto.caption)}</figcaption>` : ''}
+              </figure>
+            `).join('')}
+            ${galeriaRestantes ? `<div class="pdf-galeria-mas">+${galeriaRestantes} fotos más</div>` : ''}
+          </div>
+        </div>` : ''}
+
+        ${piePagina(false)}
+      </section>
+
+      <section class="pdf-pagina">
+        ${cabeceraPagina('04')}
+
+        ${plano ? `
+        <div class="pdf-bloque">
+          <span class="pdf-eyebrow">Distribución</span>
+          <h2 class="pdf-seccion-titulo">Plano de planta</h2>
+          <div class="pdf-plano-caja"><img src="${plano}" alt="Plano de planta"></div>
+        </div>` : ''}
+
+        <div class="pdf-bloque">
+          <span class="pdf-eyebrow">Contacto</span>
+          <div class="pdf-contacto-bar">
+            <div class="pdf-contacto-avatar">${escapeHtml(inicialContacto)}</div>
+            <div class="pdf-contacto-info">
+              <b>${escapeHtml(CONTACTO_NOMBRE)}</b>
+              <span>${escapeHtml(CONTACTO_ROL)}</span>
+            </div>
+            <a class="pdf-contacto-whatsapp" href="https://wa.me/${numeroWhatsapp}?text=${mensajeWhatsapp}" target="_blank" rel="noopener">Escríbenos por WhatsApp →</a>
+          </div>
+          <p class="pdf-contacto-datos">${CONTACTO_EMAIL} · ${CONTACTO_TELEFONO}</p>
+        </div>
+
+        ${piePagina(true)}
+      </section>
+
     </div>
   `;
 
@@ -1225,6 +1334,31 @@ function renderPreview() {
     dossierPreviewEditando.textContent = `Editando: ${titulo}`;
   }
   dossierPreviewAcciones.hidden = !dossierActualId;
+
+  ajustarEncuadreFotos();
+}
+
+// Recorte inteligente: por defecto las fotos (portada/galería) se recortan
+// centradas y ligeramente hacia arriba (para no cortar tejados/fachadas),
+// pero si la proporción de la foto es muy distinta a la del hueco (el doble
+// o más en cualquier sentido), se ajusta completa sin recortar en vez de
+// perder contenido importante de la imagen.
+function ajustarEncuadreFotos() {
+  const imgs = preview.querySelectorAll('.pdf-portada-foto img, .pdf-galeria img');
+  imgs.forEach((img) => {
+    const ajustar = () => {
+      if (!img.naturalWidth || !img.naturalHeight) return;
+      const marco = img.parentElement.getBoundingClientRect();
+      if (!marco.width || !marco.height) return;
+      const ratioImagen = img.naturalWidth / img.naturalHeight;
+      const ratioMarco = marco.width / marco.height;
+      if (ratioImagen / ratioMarco > 2 || ratioMarco / ratioImagen > 2) {
+        img.classList.add('pdf-foto-contain');
+      }
+    };
+    if (img.complete) ajustar();
+    else img.addEventListener('load', ajustar, { once: true });
+  });
 }
 
 // Vuelve a pintar la vista previa en vivo mientras se rellena el formulario

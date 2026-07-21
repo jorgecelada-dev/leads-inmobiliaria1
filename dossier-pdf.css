@@ -1,0 +1,644 @@
+/* dossier-pdf.css — Plantilla EXCLUSIVA del PDF exportable del dossier.
+   Paleta Isabelina / Taupe / Espresso / Coral, tipografía Fraunces / Public
+   Sans / IBM Plex Mono (auto-alojadas en dossier-pdf-fonts.css). No afecta
+   ni a la web pública ni al resto del panel — solo a estas clases .pdf-*. */
+
+.dossier-pdf {
+  --isabelina: #C9CFC6;
+  --isabelina-suave: #E9EBE5;
+  --taupe: #8C7C71;
+  --espresso: #241C18;
+  --coral: #FF6B45;
+  --fondo: #F6F3EE;
+  --linea: #E3DED4;
+
+  background-color: var(--fondo);
+  max-width: 720px;
+  margin: 0 auto;
+  color: var(--espresso);
+  font-family: 'Public Sans', sans-serif;
+}
+
+.dossier-pdf .pdf-eyebrow {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--coral);
+  margin: 0 0 8px;
+}
+
+.dossier-pdf .pdf-seccion-titulo {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 1.35rem;
+  color: var(--espresso);
+  margin: 0 0 18px;
+}
+
+.dossier-pdf .pdf-pagina {
+  padding: 26px 32px 34px;
+}
+
+.dossier-pdf .pdf-pagina + .pdf-pagina {
+  page-break-before: always;
+  break-before: page;
+}
+
+/* html2canvas puede recortar unos pocos px al final de documentos muy
+   altos (es una limitación conocida de la librería al capturar contenido
+   largo por partes) — este margen de seguridad al final evita que se
+   pierda el pie de la última página. */
+.dossier-pdf .pdf-pagina:last-child {
+  padding-bottom: 140px;
+}
+
+.dossier-pdf .pdf-bloque {
+  margin-bottom: 26px;
+}
+
+/* --- Cabecera / pie de página (se repiten en cada página menos la portada) --- */
+.dossier-pdf .pdf-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--linea);
+}
+
+.dossier-pdf .pdf-cabecera-marca {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--espresso);
+}
+
+.dossier-pdf .pdf-cabecera-rombo {
+  width: 9px;
+  height: 9px;
+  border: 1.3px solid var(--espresso);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.dossier-pdf .pdf-cabecera-ref {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.66rem;
+  color: var(--taupe);
+  letter-spacing: 0.02em;
+}
+
+.dossier-pdf .pdf-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  margin-top: 30px;
+  border-top: 1px solid var(--linea);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--taupe);
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* --- Página 1: portada --- */
+.dossier-pdf .pdf-portada {
+  background-color: var(--espresso);
+  color: #FFFFFF;
+  padding: 44px 40px 36px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.dossier-pdf .pdf-portada::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 22px);
+  z-index: -1;
+}
+
+.dossier-pdf .pdf-portada-marca {
+  text-align: center;
+  margin-bottom: 34px;
+}
+
+.dossier-pdf .pdf-portada-rombo {
+  width: 18px;
+  height: 18px;
+  border: 1.4px solid rgba(255,255,255,0.75);
+  transform: rotate(45deg);
+  margin: 0 auto 14px;
+}
+
+.dossier-pdf .pdf-portada-marca-nombre {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.85);
+}
+
+.dossier-pdf .pdf-portada-marca-ref {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.45);
+  margin-top: 5px;
+}
+
+.dossier-pdf .pdf-portada-titular {
+  margin: 34px 0 18px;
+}
+
+.dossier-pdf .pdf-portada-titular h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 1.9rem;
+  color: #FFFFFF;
+  margin: 0 0 4px;
+}
+
+.dossier-pdf .pdf-portada-eslogan {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.4rem;
+  color: var(--coral);
+}
+
+.dossier-pdf .pdf-portada-texto {
+  max-width: 460px;
+  color: rgba(255,255,255,0.65);
+  font-size: 0.88rem;
+  line-height: 1.65;
+  margin-bottom: 24px;
+}
+
+.dossier-pdf .pdf-portada-foto {
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.18);
+  min-height: 190px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  overflow: hidden;
+  background-color: rgba(255,255,255,0.03);
+  background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 16px);
+}
+
+.dossier-pdf .pdf-portada-foto img {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+
+.dossier-pdf .pdf-portada-foto img.pdf-foto-contain {
+  object-fit: contain;
+  background-color: rgba(255,255,255,0.06);
+}
+
+.dossier-pdf .pdf-portada-foto-caption {
+  position: relative;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.4);
+  padding: 7px 11px;
+  z-index: 1;
+}
+
+.dossier-pdf .pdf-badge-estado {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  background-color: var(--coral);
+  color: var(--espresso);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 2px;
+}
+
+.dossier-pdf .pdf-portada-precio-bloque {
+  text-align: center;
+  margin-top: 32px;
+}
+
+.dossier-pdf .pdf-portada-precio {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 1.9rem;
+  color: var(--coral);
+}
+
+.dossier-pdf .pdf-portada-precio small {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.45);
+  margin-top: 4px;
+}
+
+.dossier-pdf .pdf-portada-nota-moneda {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.4);
+  margin-top: 4px;
+}
+
+.dossier-pdf .pdf-ref-catastral {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--taupe);
+  margin: -16px 0 26px;
+}
+
+.dossier-pdf .pdf-notas-zona {
+  font-size: 0.87rem;
+  line-height: 1.7;
+  color: var(--espresso);
+  margin-top: 20px;
+}
+
+.dossier-pdf .pdf-portada-direccion {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.55);
+  margin-top: 6px;
+}
+
+.dossier-pdf .pdf-portada-disclaimer {
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin-top: 26px;
+}
+
+/* --- Barra de estadísticas (página 2) --- */
+.dossier-pdf .pdf-stats {
+  display: flex;
+  background-color: var(--espresso);
+  border-radius: 4px;
+  overflow: hidden;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.dossier-pdf .pdf-stats-item {
+  flex: 1;
+  padding: 15px 16px;
+  border-right: 1px solid rgba(255,255,255,0.12);
+}
+
+.dossier-pdf .pdf-stats-item:last-child {
+  border-right: none;
+}
+
+.dossier-pdf .pdf-stats-item b {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #FFFFFF;
+}
+
+.dossier-pdf .pdf-stats-item span {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  margin-top: 3px;
+}
+
+/* --- Radiografía de la inversión --- */
+.dossier-pdf .pdf-radiografia {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.dossier-pdf .pdf-radiografia-item {
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--coral);
+  padding: 13px 15px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.dossier-pdf .pdf-radiografia-item .pdf-eyebrow {
+  color: var(--taupe);
+  font-size: 0.6rem;
+  margin-bottom: 7px;
+}
+
+.dossier-pdf .pdf-radiografia-item b {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--espresso);
+}
+
+.dossier-pdf .pdf-radiografia-item small {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--taupe);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* --- Badges de estado legal / energético --- */
+.dossier-pdf .pdf-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dossier-pdf .pdf-badge {
+  background-color: var(--isabelina-suave);
+  color: var(--espresso);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 3px;
+}
+
+/* --- Descripción --- */
+.dossier-pdf .pdf-descripcion {
+  font-size: 0.87rem;
+  line-height: 1.7;
+  color: var(--espresso);
+}
+
+/* --- Datos de la vivienda, 3 columnas --- */
+.dossier-pdf .pdf-datos-vivienda {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.dossier-pdf .pdf-datos-grupo-titulo {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--espresso);
+  border-bottom: 2px solid var(--coral);
+  padding-bottom: 5px;
+  margin-bottom: 12px;
+}
+
+.dossier-pdf .pdf-datos-fila {
+  margin-bottom: 10px;
+}
+
+.dossier-pdf .pdf-datos-fila span {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--taupe);
+}
+
+.dossier-pdf .pdf-datos-fila b {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--espresso);
+  margin-top: 2px;
+}
+
+/* --- Ubicación --- */
+.dossier-pdf .pdf-mapa-caja {
+  background-color: var(--isabelina-suave);
+  background-image: repeating-linear-gradient(-45deg, rgba(140,124,113,0.14) 0 1px, transparent 1px 13px);
+  border-radius: 4px;
+  min-height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.dossier-pdf .pdf-mapa-caja img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+}
+
+.dossier-pdf .pdf-mapa-caption {
+  position: relative;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--taupe);
+  background-color: rgba(246,243,238,0.88);
+  padding: 4px 10px;
+  border-radius: 3px;
+}
+
+.dossier-pdf .pdf-contexto {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.dossier-pdf .pdf-contexto-columna .pdf-eyebrow {
+  font-size: 0.6rem;
+}
+
+.dossier-pdf .pdf-contexto-fila {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px dotted var(--linea);
+  font-size: 0.8rem;
+  color: var(--espresso);
+}
+
+.dossier-pdf .pdf-contexto-fila b {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  color: var(--espresso);
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+/* --- Galería --- */
+.dossier-pdf .pdf-galeria {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.dossier-pdf .pdf-galeria figure {
+  margin: 0;
+  position: relative;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  background-color: var(--isabelina-suave);
+}
+
+.dossier-pdf .pdf-galeria img {
+  width: 100%;
+  height: 128px;
+  object-fit: cover;
+  display: block;
+  border-radius: 3px;
+}
+
+.dossier-pdf .pdf-galeria img.pdf-foto-contain {
+  object-fit: contain;
+}
+
+.dossier-pdf .pdf-galeria figcaption {
+  position: absolute;
+  left: 7px;
+  bottom: 7px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  color: #FFFFFF;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.65);
+}
+
+.dossier-pdf .pdf-galeria-mas {
+  height: 128px;
+  background-color: var(--espresso);
+  color: rgba(255,255,255,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.74rem;
+  border-radius: 3px;
+}
+
+/* --- Plano de planta --- */
+.dossier-pdf .pdf-plano-caja {
+  border: 1px solid var(--linea);
+  border-radius: 4px;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background-color: #FFFFFF;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.dossier-pdf .pdf-plano-caja img {
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+}
+
+.dossier-pdf .pdf-plano-caption {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--taupe);
+}
+
+/* --- Contacto --- */
+.dossier-pdf .pdf-contacto-bar {
+  background-color: var(--espresso);
+  border-radius: 4px;
+  padding: 15px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.dossier-pdf .pdf-contacto-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: var(--coral);
+  color: var(--espresso);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.dossier-pdf .pdf-contacto-info {
+  flex: 1;
+  color: #FFFFFF;
+  min-width: 0;
+}
+
+.dossier-pdf .pdf-contacto-info b {
+  display: block;
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.dossier-pdf .pdf-contacto-info span {
+  display: block;
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  margin-top: 2px;
+}
+
+.dossier-pdf .pdf-contacto-whatsapp {
+  background-color: var(--coral);
+  color: var(--espresso);
+  font-weight: 700;
+  font-size: 0.76rem;
+  padding: 9px 16px;
+  border-radius: 3px;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dossier-pdf .pdf-contacto-datos {
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--taupe);
+  margin-top: 12px;
+}
