@@ -538,19 +538,19 @@ h1, h2, h3 {
   padding: 6px 12px;
   border: 1px solid #B3261E;
   border-radius: 4px;
-  background-color: transparent;
-  color: #B3261E;
+  background-color: #B3261E;
+  color: #FFFFFF;
   font-family: 'Public Sans', sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-eliminar:hover {
-  background-color: #B3261E;
-  color: #FFFFFF;
+  background-color: #96190F;
+  border-color: #96190F;
 }
 
 .admin-notas {
@@ -1055,6 +1055,15 @@ h1, h2, h3 {
 .dossier-editor-botones-principales .btn-primary,
 .dossier-editor-botones-principales .btn-eliminar {
   flex: 1;
+}
+
+.btn-guardar-dossier {
+  background-color: #1D7A4C;
+  color: #FFFFFF;
+}
+
+.btn-guardar-dossier:hover {
+  background-color: #17603C;
 }
 
 .btn-salir-dossier {

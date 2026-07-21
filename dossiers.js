@@ -11,9 +11,9 @@ const CONTACTO_ROL = "Asesor de inversión inmobiliaria internacional";
 // Agrupación de categorías de puntos de interés para la sección "Ubicación"
 // de la nueva plantilla del PDF (Movilidad / Servicios / Ocio).
 const GRUPOS_CONTEXTO_POI = [
-  { titulo: 'Movilidad', keys: ['airport', 'transport'] },
+  { titulo: 'Movilidad', keys: ['airport', 'metro', 'transport'] },
   { titulo: 'Servicios', keys: ['schools', 'shopping', 'hospital', 'bank', 'offices'] },
-  { titulo: 'Ocio', keys: ['restaurants', 'cafes', 'gym', 'parks', 'beach'] },
+  { titulo: 'Ocio', keys: ['restaurants', 'cafes', 'gym', 'parks', 'pool', 'beach'] },
 ];
 
 // Categorías fijas de puntos de interés, cada una con su icono (trazo simple,
@@ -21,20 +21,40 @@ const GRUPOS_CONTEXTO_POI = [
 const CATEGORIAS_POI = [
   { key: 'airport', label: 'Aeropuerto', icon: '<path d="M21 3 L3 10 L11 13 L14 21 L21 3 Z"/><line x1="11" y1="13" x2="21" y2="3"/>' },
   { key: 'beach', label: 'Playa', icon: '<circle cx="12" cy="7" r="3"/><path d="M2 15 q2.5 -3 5 0 t5 0 t5 0 t5 0"/><path d="M2 19 q2.5 -3 5 0 t5 0 t5 0 t5 0"/>' },
+  { key: 'metro', label: 'Metro', icon: '<rect x="6" y="3" width="12" height="14" rx="6"/><line x1="6" y1="11" x2="18" y2="11"/><circle cx="9.5" cy="14" r="1"/><circle cx="14.5" cy="14" r="1"/><path d="M8 17 L6 21 M16 17 L18 21"/>' },
   { key: 'transport', label: 'Transporte público', icon: '<rect x="5" y="3" width="14" height="13" rx="3"/><line x1="5" y1="10" x2="19" y2="10"/><circle cx="8.5" cy="13.2" r="0.9"/><circle cx="15.5" cy="13.2" r="0.9"/><path d="M8 16 L6 20 M16 16 L18 20"/>' },
   { key: 'schools', label: 'Colegios', icon: '<path d="M12 3 L2 8 L12 13 L22 8 Z"/><path d="M6 10 V16 C6 18 9 20 12 20 C15 20 18 18 18 16 V10"/><line x1="22" y1="8" x2="22" y2="15"/>' },
-  { key: 'shopping', label: 'Centros comerciales', icon: '<path d="M6 8 L4 21 H20 L18 8 Z"/><path d="M8 8 V6 a4 4 0 0 1 8 0 v2"/>' },
+  { key: 'shopping', label: 'Shopping', icon: '<path d="M6 8 L4 21 H20 L18 8 Z"/><path d="M8 8 V6 a4 4 0 0 1 8 0 v2"/>' },
   { key: 'restaurants', label: 'Restaurantes', icon: '<line x1="7" y1="2" x2="7" y2="9"/><line x1="10" y1="2" x2="10" y2="9"/><path d="M7 9 Q8.5 12 10 9"/><line x1="8.5" y1="2" x2="8.5" y2="22"/><path d="M16 2 C18 2 19 5 19 8 C19 11 17 12 16 12 V22"/>' },
   { key: 'cafes', label: 'Cafeterías', icon: '<path d="M4 9 H18 V15 A5 5 0 0 1 13 20 H9 A5 5 0 0 1 4 15 Z"/><path d="M18 10 H20 A2.5 2.5 0 0 1 20 15 H18"/><path d="M8 3 c0 1.5 -1.5 1.5 -1.5 3 M12 3 c0 1.5 -1.5 1.5 -1.5 3"/>' },
   { key: 'gym', label: 'Gimnasios', icon: '<rect x="1.5" y="9" width="3" height="6"/><rect x="19.5" y="9" width="3" height="6"/><rect x="5.5" y="7" width="2.5" height="10"/><rect x="16" y="7" width="2.5" height="10"/><line x1="8" y1="12" x2="16" y2="12"/>' },
   { key: 'parks', label: 'Parques', icon: '<circle cx="12" cy="8" r="6"/><line x1="12" y1="14" x2="12" y2="21"/>' },
+  { key: 'pool', label: 'Piscinas cercanas', icon: '<path d="M2 8c2 -2 4 -2 6 0s4 2 6 0s4 -2 6 0s4 2 6 0"/><path d="M2 14c2 -2 4 -2 6 0s4 2 6 0s4 -2 6 0s4 2 6 0"/><path d="M2 20c2 -2 4 -2 6 0s4 2 6 0s4 -2 6 0s4 2 6 0"/>' },
   { key: 'hospital', label: 'Hospitales', icon: '<rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="7.5" x2="12" y2="16.5"/><line x1="7.5" y1="12" x2="16.5" y2="12"/>' },
   { key: 'bank', label: 'Bancos', icon: '<path d="M3 10 L12 3 L21 10 Z"/><line x1="4" y1="10" x2="4" y2="19"/><line x1="9" y1="10" x2="9" y2="19"/><line x1="15" y1="10" x2="15" y2="19"/><line x1="20" y1="10" x2="20" y2="19"/><line x1="2" y1="20" x2="22" y2="20"/>' },
   { key: 'offices', label: 'Oficinas', icon: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7 V5 a2 2 0 0 1 2 -2 h4 a2 2 0 0 1 2 2 V7"/><line x1="3" y1="12.5" x2="21" y2="12.5"/>' },
 ];
 
+// Iconos de modo de desplazamiento (a pie / en coche), a la izquierda del
+// tiempo estimado a cada punto de interés.
+const ICONO_ANDANDO = '<circle cx="13.5" cy="5" r="1.6"/><path d="M13.5 7.5l-2.5 2v4l-2 6"/><path d="M13.5 7.5l2.5 2.5-1 4 2.5 5"/><path d="M11 9.5l4.5.5"/>';
+const ICONO_COCHE = '<path d="M5 16h14M6 16l1.5-5a2 2 0 0 1 2-1.5h5a2 2 0 0 1 2 1.5L18 16"/><circle cx="8" cy="17.5" r="1.5"/><circle cx="16" cy="17.5" r="1.5"/>';
+
 function svgIcono(icono, tamano) {
   return `<svg width="${tamano}" height="${tamano}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${icono}</svg>`;
+}
+
+// El logo real de la marca (rombo + skyline), el mismo que en la barra
+// superior del panel y el favicon — no una versión simplificada.
+function svgLogoMarca(tamano, color) {
+  return `<svg width="${tamano}" height="${tamano}" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M40 6 L74 40 L40 74 L6 40 Z" stroke="${color}" stroke-width="2"/>
+    <g fill="${color}">
+      <rect x="26" y="38" width="6" height="16" />
+      <rect x="37" y="28" width="6" height="26" />
+      <rect x="48" y="34" width="6" height="20" />
+    </g>
+  </svg>`;
 }
 
 // Término de búsqueda en Nominatim para cada categoría, para poder calcular
@@ -44,6 +64,7 @@ function svgIcono(icono, tamano) {
 const TERMINOS_BUSQUEDA_POI = {
   airport: 'aeropuerto',
   beach: 'playa',
+  metro: 'estación de metro',
   transport: 'estación de tren',
   schools: 'colegio',
   shopping: 'centro comercial',
@@ -51,6 +72,7 @@ const TERMINOS_BUSQUEDA_POI = {
   cafes: 'cafetería',
   gym: 'gimnasio',
   parks: 'parque',
+  pool: 'piscina',
   hospital: 'hospital',
   bank: 'banco',
   offices: 'oficinas',
@@ -88,18 +110,25 @@ async function calcularTiempoEnCoche(lat1, lng1, lat2, lng2) {
   }
 }
 
-function formatearTiempoCoche(minutos) {
-  if (minutos < 1) return 'menos de 1 min en coche';
-  if (minutos < 60) return `${minutos} min en coche`;
+function formatearMinutos(minutos) {
+  if (minutos < 1) return '<1 min';
+  if (minutos < 60) return `${minutos} min`;
   const horas = Math.floor(minutos / 60);
   const resto = minutos % 60;
-  return `${horas} h${resto ? ` ${resto} min` : ''} en coche`;
+  return `${horas} h${resto ? ` ${resto} min` : ''}`;
 }
+
+// Velocidad media a pie usada para estimar la equivalencia andando cuando el
+// punto de interés está muy cerca (menos de 5 min en coche).
+const VELOCIDAD_ANDANDO_KMH = 5;
+const UMBRAL_COCHE_MIN = 5;
 
 // Busca en Nominatim el resultado más relevante de una categoría cerca del
 // punto dado (acotado a una caja de ~2 km), se queda con el más próximo en
-// línea recta, y calcula el tiempo real en coche hasta él. Si la ruta falla,
-// cae de vuelta a la distancia en línea recta en vez de no mostrar nada.
+// línea recta, y calcula el tiempo real en coche hasta él. Si queda a menos
+// de 5 min en coche, se muestra la equivalencia andando en su lugar (está
+// claramente cerca como para ir a pie). Devuelve
+// { texto, modo: 'andando'|'coche' } o null si no se encuentra nada.
 async function calcularDistanciaPOI(lat, lng, categoriaKey) {
   const termino = TERMINOS_BUSQUEDA_POI[categoriaKey];
   if (!termino) return null;
@@ -129,8 +158,16 @@ async function calcularDistanciaPOI(lat, lng, categoriaKey) {
       }
     }
     if (!masCercano) return null;
-    const minutos = await calcularTiempoEnCoche(lat, lng, parseFloat(masCercano.lat), parseFloat(masCercano.lon));
-    return minutos != null ? formatearTiempoCoche(minutos) : formatearDistancia(distanciaMinima);
+
+    const minutosCoche = await calcularTiempoEnCoche(lat, lng, parseFloat(masCercano.lat), parseFloat(masCercano.lon));
+    if (minutosCoche != null && minutosCoche < UMBRAL_COCHE_MIN) {
+      const minutosAndando = Math.round((distanciaMinima / VELOCIDAD_ANDANDO_KMH) * 60);
+      return { texto: formatearMinutos(minutosAndando), modo: 'andando' };
+    }
+    return {
+      texto: minutosCoche != null ? formatearMinutos(minutosCoche) : formatearDistancia(distanciaMinima),
+      modo: 'coche',
+    };
   } catch (error) {
     console.error('No se pudo calcular la distancia para', categoriaKey, error);
     return null;
@@ -171,6 +208,7 @@ let galeriaExistente = []; // fotos que ya tenía el dossier (menos las quitadas
 let coverExistenteUrl = null; // URL de portada que ya tenía el dossier (null si se quitó)
 let floorplanExistenteUrl = null; // igual, para el plano
 let puntosInteres = {}; // { [categoria]: detalleTexto } — solo entran las categorías marcadas
+let modosTransportePoi = {}; // { [categoria]: 'andando'|'coche' } — solo para distancias calculadas solas
 let mapaLat = null;
 let mapaLng = null;
 
@@ -304,6 +342,8 @@ function renderGridPOI() {
     detalle.hidden = !marcado;
     detalle.addEventListener('input', () => {
       puntosInteres[categoria.key] = detalle.value;
+      // Ya no sabemos si el texto escrito a mano es "andando" o "en coche"
+      delete modosTransportePoi[categoria.key];
     });
     item.appendChild(detalle);
 
@@ -319,13 +359,16 @@ function renderGridPOI() {
           detalle.value = 'Calculando…';
           calcularDistanciaPOI(mapaLat, mapaLng, categoria.key).then((resultado) => {
             if (!checkbox.checked) return;
-            detalle.value = resultado || '';
-            puntosInteres[categoria.key] = resultado || '';
+            detalle.value = resultado ? resultado.texto : '';
+            puntosInteres[categoria.key] = resultado ? resultado.texto : '';
+            if (resultado) modosTransportePoi[categoria.key] = resultado.modo;
+            else delete modosTransportePoi[categoria.key];
             renderPreview();
           });
         }
       } else {
         delete puntosInteres[categoria.key];
+        delete modosTransportePoi[categoria.key];
         detalle.hidden = true;
         item.classList.remove('poi-item-activo');
       }
@@ -494,10 +537,11 @@ async function rellenarDistanciasFaltantes(lat, lng) {
   await Promise.all(pendientes.map(async (key) => {
     const resultado = await calcularDistanciaPOI(lat, lng, key);
     if (!resultado) return;
-    puntosInteres[key] = resultado;
+    puntosInteres[key] = resultado.texto;
+    modosTransportePoi[key] = resultado.modo;
     const indice = CATEGORIAS_POI.findIndex((c) => c.key === key);
     const input = poiGrid.children[indice]?.querySelector('.poi-detalle');
-    if (input) input.value = resultado;
+    if (input) input.value = resultado.texto;
   }));
 }
 
@@ -672,7 +716,11 @@ function abrirEditor(dossier) {
   renderPreviewGaleria();
 
   puntosInteres = {};
-  (dossier?.points_of_interest || []).forEach((p) => { puntosInteres[p.category] = p.detail || ''; });
+  modosTransportePoi = {};
+  (dossier?.points_of_interest || []).forEach((p) => {
+    puntosInteres[p.category] = p.detail || '';
+    if (p.modo) modosTransportePoi[p.category] = p.modo;
+  });
   renderGridPOI();
 
   document.getElementById('d-title').value = dossier?.title || '';
@@ -695,6 +743,8 @@ function abrirEditor(dossier) {
   document.getElementById('d-garage').value = dossier?.garage_spaces ?? '';
   document.getElementById('d-furnished').value = dossier?.furnished || '';
   document.getElementById('d-storage').checked = !!dossier?.storage_room;
+  document.getElementById('d-pool').checked = !!dossier?.has_pool;
+  document.getElementById('d-rent').value = dossier?.estimated_monthly_rent ?? '';
   document.getElementById('d-cadastral').value = dossier?.cadastral_reference || '';
   document.getElementById('d-legal-status').value = dossier?.legal_status || '';
 
@@ -890,6 +940,14 @@ async function subirImagen(file, carpeta, conMarcaDeAgua = false) {
   if (!respuesta.ok) {
     const cuerpo = await respuesta.text();
     console.error('Respuesta de Storage al fallar la subida:', cuerpo);
+    // A veces Supabase envuelve un token caducado en un 400 (con un
+    // "statusCode":"403" y el error de JWT dentro del cuerpo) en vez de
+    // devolver un 401/403 directo — lo detectamos igual por el mensaje.
+    if (cuerpo.includes('claim timestamp') || cuerpo.includes('JWT expired')) {
+      sessionStorage.removeItem('admin-token');
+      window.location.href = 'admin.html';
+      throw new Error('Tu sesión ha caducado. Vuelve a iniciar sesión e inténtalo de nuevo.');
+    }
     throw new Error(`No se pudo subir ${file.name} (${respuesta.status}): ${cuerpo}`);
   }
   return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${nombreArchivo}`;
@@ -915,7 +973,7 @@ dossierForm.addEventListener('submit', async (evento) => {
       ibi: document.getElementById('d-ibi').value ? Number(document.getElementById('d-ibi').value) : null,
       description: document.getElementById('d-description').value || null,
       area_info: document.getElementById('d-area').value || null,
-      points_of_interest: Object.entries(puntosInteres).map(([category, detail]) => ({ category, detail })),
+      points_of_interest: Object.entries(puntosInteres).map(([category, detail]) => ({ category, detail, modo: modosTransportePoi[category] || null })),
       lat: mapaLat,
       lng: mapaLng,
       annual_insurance_estimate: document.getElementById('d-insurance').value ? Number(document.getElementById('d-insurance').value) : null,
@@ -925,6 +983,8 @@ dossierForm.addEventListener('submit', async (evento) => {
       garage_spaces: document.getElementById('d-garage').value ? Number(document.getElementById('d-garage').value) : null,
       furnished: document.getElementById('d-furnished').value || null,
       storage_room: document.getElementById('d-storage').checked,
+      has_pool: document.getElementById('d-pool').checked,
+      estimated_monthly_rent: document.getElementById('d-rent').value ? Number(document.getElementById('d-rent').value) : null,
       cadastral_reference: document.getElementById('d-cadastral').value || null,
       legal_status: document.getElementById('d-legal-status').value || null,
     };
@@ -1042,6 +1102,8 @@ function renderPreview() {
   const garaje = document.getElementById('d-garage').value;
   const amueblado = document.getElementById('d-furnished').value;
   const trastero = document.getElementById('d-storage').checked;
+  const piscina = document.getElementById('d-pool').checked;
+  const alquilerEstimado = document.getElementById('d-rent').value;
   const catastro = document.getElementById('d-cadastral').value;
   const situacionLegal = document.getElementById('d-legal-status').value;
 
@@ -1087,6 +1149,15 @@ function renderPreview() {
     }
   }
 
+  // Alquiler mensual estimado (referencia manual del agente) y rentabilidad
+  // bruta anual si además tenemos el precio de venta.
+  let alquilerCaption = '';
+  if (alquilerEstimado) {
+    alquilerCaption = precio
+      ? `Rentabilidad bruta est. ${((Number(alquilerEstimado) * 12 / Number(precio)) * 100).toFixed(1)}% anual`
+      : 'Referencia orientativa del agente';
+  }
+
   const portada = dossierActual.cover_image_url || '';
   const plano = dossierActual.floor_plan_url || '';
   const galeria = dossierActual.gallery && dossierActual.gallery.length
@@ -1126,6 +1197,7 @@ function renderPreview() {
     habitaciones ? { etiqueta: 'Habitaciones', valor: habitaciones } : null,
     banos ? { etiqueta: 'Baños', valor: banos } : null,
     trastero ? { etiqueta: 'Trastero', valor: 'Sí' } : null,
+    piscina ? { etiqueta: 'Piscina', valor: 'Sí' } : null,
   ].filter(Boolean);
 
   const grupoEstadoVivienda = [
@@ -1156,31 +1228,38 @@ function renderPreview() {
   const mensajeWhatsapp = encodeURIComponent(`Hola, me interesa el inmueble "${titulo}"`);
   const inicialContacto = CONTACTO_NOMBRE.trim().charAt(0).toUpperCase();
 
-  const cabeceraPagina = (numeroPagina) => `
+  // El PDF ahora es una sola página continua (no dividida en 4), así que la
+  // cabecera y el pie aparecen una sola vez cada uno, no repetidos por página.
+  const cabeceraPagina = () => `
     <div class="pdf-cabecera">
-      <span class="pdf-cabecera-marca"><span class="pdf-cabecera-rombo"></span>Invest Spain Properties</span>
-      <span class="pdf-cabecera-ref">${referenciaDossier} · ${numeroPagina}/04</span>
+      <span class="pdf-cabecera-marca">${svgLogoMarca(16, '#241C18')}Invest Spain Properties</span>
+      <span class="pdf-cabecera-ref">${referenciaDossier}</span>
     </div>`;
 
-  const piePagina = (esUltima) => `
+  const piePagina = () => `
     <div class="pdf-pie">
       <span>Invest Spain Properties</span>
-      <span>${esUltima ? 'Be First. · Documento de trabajo, no final' : 'Documento de trabajo, no final'}</span>
+      <span>Documento confidencial</span>
     </div>`;
+
+  // Patrón de fondo de la portada: muchos rombos reales (no imagen de fondo
+  // en mosaico, que html2canvas no reproduce bien) — de sobra para cubrir
+  // portadas cortas o largas, el overflow:hidden del contenedor recorta el resto.
+  const patronRombos = '<span class="pdf-patron-rombo"></span>'.repeat(9 * 18);
 
   preview.innerHTML = `
     <div class="dossier-pdf">
 
       <section class="pdf-pagina pdf-portada">
+        <div class="pdf-portada-patron">${patronRombos}</div>
         <div class="pdf-portada-marca">
-          <div class="pdf-portada-rombo"></div>
+          <div class="pdf-portada-logo">${svgLogoMarca(28, '#FFFFFF')}</div>
           <div class="pdf-portada-marca-nombre">Invest Spain Properties</div>
           <div class="pdf-portada-marca-ref">Dossier confidencial · Ref. ${referenciaDossier}</div>
         </div>
 
         <div class="pdf-portada-titular">
           <h1>${escapeHtml(titulo)}</h1>
-          <div class="pdf-portada-eslogan">Be First.</div>
         </div>
 
         ${descripcion ? `<p class="pdf-portada-texto">${escapeHtml(descripcion)}</p>` : ''}
@@ -1197,18 +1276,18 @@ function renderPreview() {
           <div class="pdf-portada-direccion">${escapeHtml([direccion, zona].filter(Boolean).join(' · '))}</div>
         </div>
 
-        <div class="pdf-portada-disclaimer">Documento de trabajo · Uso exclusivo del destinatario</div>
+        <div class="pdf-portada-disclaimer">Dossier inmobiliario · Uso exclusivo del destinatario</div>
       </section>
 
       <section class="pdf-pagina">
-        ${cabeceraPagina('02')}
+        ${cabeceraPagina()}
 
         ${statsBarra.length ? `
         <div class="pdf-bloque pdf-stats">
           ${statsBarra.map((s) => `<div class="pdf-stats-item"><b>${escapeHtml(String(s.valor))}</b><span>${escapeHtml(s.etiqueta)}</span></div>`).join('')}
         </div>` : ''}
 
-        ${(precioM2Valor || costeAnual) ? `
+        ${(precioM2Valor || costeAnual || alquilerEstimado) ? `
         <div class="pdf-bloque">
           <span class="pdf-eyebrow">Para inversores</span>
           <h2 class="pdf-seccion-titulo">Radiografía de la inversión</h2>
@@ -1224,6 +1303,12 @@ function renderPreview() {
               <span class="pdf-eyebrow">Mantenimiento anual</span>
               <b>≈ ${formatearPrecio(costeAnual)}</b>
               <small>IBI + comunidad + seguro est.</small>
+            </div>` : ''}
+            ${alquilerEstimado ? `
+            <div class="pdf-radiografia-item">
+              <span class="pdf-eyebrow">Alquiler mensual estimado</span>
+              <b>${formatearPrecio(Number(alquilerEstimado))}/mes</b>
+              ${alquilerCaption ? `<small>${alquilerCaption}</small>` : ''}
             </div>` : ''}
           </div>
         </div>` : ''}
@@ -1249,12 +1334,10 @@ function renderPreview() {
             ${renderGrupoDatos('Gastos', grupoGastos)}
           </div>
         </div>` : ''}
-
-        ${piePagina(false)}
       </section>
 
       <section class="pdf-pagina">
-        ${cabeceraPagina('03')}
+
 
         <div class="pdf-bloque">
           <span class="pdf-eyebrow">Contexto</span>
@@ -1272,8 +1355,15 @@ function renderPreview() {
                 <span class="pdf-eyebrow">${escapeHtml(grupo.titulo)}</span>
                 ${grupo.items.map((c) => `
                   <div class="pdf-contexto-fila">
-                    <span>${escapeHtml(c.label)}</span>
-                    ${puntosInteres[c.key] ? `<b>${escapeHtml(puntosInteres[c.key])}</b>` : ''}
+                    <span class="pdf-contexto-etiqueta">
+                      <span class="pdf-contexto-icono">${svgIcono(c.icon, 14)}</span>
+                      ${escapeHtml(c.label)}
+                    </span>
+                    ${puntosInteres[c.key] ? `
+                    <b>
+                      <span class="pdf-modo-icono">${svgIcono(modosTransportePoi[c.key] === 'andando' ? ICONO_ANDANDO : ICONO_COCHE, 12)}</span>
+                      ${escapeHtml(puntosInteres[c.key])}
+                    </b>` : ''}
                   </div>
                 `).join('')}
               </div>
@@ -1296,12 +1386,10 @@ function renderPreview() {
             ${galeriaRestantes ? `<div class="pdf-galeria-mas">+${galeriaRestantes} fotos más</div>` : ''}
           </div>
         </div>` : ''}
-
-        ${piePagina(false)}
       </section>
 
       <section class="pdf-pagina">
-        ${cabeceraPagina('04')}
+
 
         ${plano ? `
         <div class="pdf-bloque">
@@ -1321,9 +1409,10 @@ function renderPreview() {
             <a class="pdf-contacto-whatsapp" href="https://wa.me/${numeroWhatsapp}?text=${mensajeWhatsapp}" target="_blank" rel="noopener">Escríbenos por WhatsApp →</a>
           </div>
           <p class="pdf-contacto-datos">${CONTACTO_EMAIL} · ${CONTACTO_TELEFONO}</p>
+          <p class="pdf-be-first">Be First.</p>
         </div>
 
-        ${piePagina(true)}
+        ${piePagina()}
       </section>
 
     </div>
@@ -1413,9 +1502,21 @@ generarPdfBtn.addEventListener('click', async () => {
       await document.fonts.ready;
     }
 
+    // Una sola página continua del alto exacto del contenido, en vez de
+    // encajarlo en páginas A4 fijas — así el resultado exportado coincide
+    // siempre con la vista previa, sea cual sea la cantidad de contenido.
+    const elDossier = preview.firstElementChild;
+    const anchoPagina = elDossier.offsetWidth;
+    const altoPagina = elDossier.scrollHeight;
+
     const pdfBlob = await html2pdf()
-      .set({ html2canvas: { useCORS: true, scale: 2 } })
-      .from(preview.firstElementChild)
+      .set({
+        margin: 0,
+        html2canvas: { useCORS: true, scale: 2 },
+        jsPDF: { unit: 'px', format: [anchoPagina, altoPagina], orientation: 'portrait' },
+        pagebreak: { mode: [] },
+      })
+      .from(elDossier)
       .outputPdf('blob');
 
     // Cada generación se guarda como una versión nueva (v1, v2, ...) en vez

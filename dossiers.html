@@ -203,9 +203,19 @@
             <div class="campo campo-inline">
               <label class="campo-checkbox-label"><input type="checkbox" id="d-storage"> Tiene trastero</label>
             </div>
+            <div class="campo campo-inline">
+              <label class="campo-checkbox-label"><input type="checkbox" id="d-pool"> Tiene piscina</label>
+            </div>
+          </div>
+
+          <div class="campo-fila">
             <div class="campo">
               <label for="d-cadastral">Referencia catastral (opcional)</label>
               <input type="text" id="d-cadastral">
+            </div>
+            <div class="campo">
+              <label for="d-rent">Alquiler mensual estimado (€, opcional)</label>
+              <input type="number" id="d-rent" min="0">
             </div>
           </div>
 
@@ -249,7 +259,7 @@
 
           <div class="dossier-editor-botones">
             <div class="dossier-editor-botones-principales">
-              <button type="submit" class="btn-primary">Guardar dossier</button>
+              <button type="submit" class="btn-primary btn-guardar-dossier">Guardar dossier</button>
               <button type="button" class="btn-eliminar" id="eliminar-dossier-btn" hidden>Eliminar dossier</button>
             </div>
             <button type="button" class="btn-salir-dossier" id="cancelar-editor-btn">Salir de dossier</button>
