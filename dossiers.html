@@ -47,7 +47,10 @@
     <div id="tab-dossiers" class="inmuebles-tab-panel">
       <div class="admin-header">
         <p></p>
-        <button class="btn-primary" id="nuevo-dossier-btn" type="button">+ Nuevo dossier</button>
+        <div class="admin-header-acciones">
+          <a href="pdfs.html" class="btn-secundario">Ver PDFs generados</a>
+          <button class="btn-primary" id="nuevo-dossier-btn" type="button">+ Nuevo dossier</button>
+        </div>
       </div>
 
       <p class="form-status" id="dossiers-status"></p>
@@ -238,9 +241,11 @@
           </div>
 
           <div class="dossier-editor-botones">
-            <button type="submit" class="btn-primary">Guardar dossier</button>
-            <button type="button" class="btn-secundario" id="cancelar-editor-btn">Cancelar</button>
-            <button type="button" class="btn-eliminar" id="eliminar-dossier-btn" hidden>Eliminar dossier</button>
+            <div class="dossier-editor-botones-principales">
+              <button type="submit" class="btn-primary">Guardar dossier</button>
+              <button type="button" class="btn-eliminar" id="eliminar-dossier-btn" hidden>Eliminar dossier</button>
+            </div>
+            <button type="button" class="btn-salir-dossier" id="cancelar-editor-btn">Salir de dossier</button>
           </div>
           <p class="form-status" id="dossier-form-status"></p>
         </form>
@@ -252,6 +257,7 @@
         <div class="dossier-preview-acciones" id="dossier-preview-acciones" hidden>
           <button type="button" class="btn-primary" id="generar-pdf-btn">Generar PDF</button>
           <a href="#" id="ver-pdf-link" target="_blank" rel="noopener" hidden>Ver último PDF generado</a>
+          <div class="pdf-versiones" id="pdf-versiones-lista"></div>
         </div>
       </div>
       </section>

@@ -101,7 +101,9 @@ create table dossiers (
   -- Valores esperados de furnished: si, no, parcial
   cadastral_reference text,
   legal_status text,
-  annual_insurance_estimate numeric
+  annual_insurance_estimate numeric,
+  pdf_versions jsonb default '[]'
+  -- Cada elemento: {"version": 1, "url": "...", "created_at": "..."}
 );
 alter table dossiers enable row level security;
 create policy "Authenticated can manage dossiers" on dossiers for all to authenticated using (true) with check (true);

@@ -352,6 +352,18 @@ h1, h2, h3 {
   margin-bottom: 24px;
 }
 
+.admin-header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-header-acciones .btn-secundario {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
 .admin-header h1 {
   color: #4E413B;
   font-size: 1.8rem;
@@ -422,12 +434,12 @@ h1, h2, h3 {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.78rem;
-  min-width: 900px;
+  min-width: 760px;
 }
 
 .admin-tabla th {
   text-align: left;
-  padding: 10px 8px;
+  padding: 10px 6px;
   background-color: #4E413B;
   color: #EEF4F3;
   font-weight: 600;
@@ -435,7 +447,7 @@ h1, h2, h3 {
 }
 
 .admin-tabla td {
-  padding: 8px;
+  padding: 8px 6px;
   border-bottom: 1px solid #DCE7E5;
   vertical-align: top;
 }
@@ -450,11 +462,23 @@ h1, h2, h3 {
 }
 
 .admin-tabla select {
-  padding: 6px 8px;
+  width: 100%;
+  max-width: 100px;
+  padding: 5px 6px;
   border: 1px solid #C9BEB8;
   border-radius: 4px;
   font-family: 'Public Sans', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+}
+
+.admin-celda-interesado {
+  text-align: center;
+  width: 40px;
+}
+
+.admin-tabla th:first-child {
+  width: 40px;
+  text-align: center;
 }
 
 .marketing-nota {
@@ -530,8 +554,8 @@ h1, h2, h3 {
 }
 
 .admin-notas {
-  width: 130px;
-  min-width: 130px;
+  width: 110px;
+  min-width: 110px;
   padding: 5px 6px;
   border: 1px solid #C9BEB8;
   border-radius: 4px;
@@ -542,7 +566,7 @@ h1, h2, h3 {
 
 .admin-input {
   width: 100%;
-  min-width: 85px;
+  min-width: 75px;
   padding: 5px 6px;
   margin-bottom: 4px;
   border: 1px solid #C9BEB8;
@@ -673,6 +697,13 @@ h1, h2, h3 {
 .btn-editar:hover {
   background-color: #1D4ED8;
   color: #FFFFFF;
+}
+
+.pdf-tarjeta-link {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  margin-top: 10px;
 }
 
 .dossier-tarjeta-badge {
@@ -1011,6 +1042,39 @@ h1, h2, h3 {
   margin-top: 8px;
 }
 
+#dossier-form .dossier-editor-botones {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.dossier-editor-botones-principales {
+  display: flex;
+  gap: 12px;
+}
+
+.dossier-editor-botones-principales .btn-primary,
+.dossier-editor-botones-principales .btn-eliminar {
+  flex: 1;
+}
+
+.btn-salir-dossier {
+  margin-top: 4px;
+  padding: 10px 20px;
+  background-color: transparent;
+  border: none;
+  color: #857671;
+  font-family: 'Public Sans', sans-serif;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.btn-salir-dossier:hover {
+  color: #4E413B;
+}
+
 .dossier-preview-wrap {
   position: sticky;
   top: 90px;
@@ -1030,6 +1094,7 @@ h1, h2, h3 {
 
 .dossier-preview-acciones {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 16px;
@@ -1045,6 +1110,27 @@ h1, h2, h3 {
   font-size: 0.85rem;
   color: #4E413B;
   font-weight: 600;
+}
+
+.pdf-versiones {
+  display: flex;
+  gap: 8px;
+  flex-basis: 100%;
+}
+
+.pdf-versiones a {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #857671;
+  background-color: #EEF4F3;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.pdf-versiones a:hover {
+  color: #4E413B;
+  background-color: #DCE7E5;
 }
 
 /* --- El documento del dossier (esto es lo que se convierte en PDF) --- */
@@ -1249,14 +1335,12 @@ p.dossier-pdf-direccion {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: 20px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .dossier-pdf-mapa {
   width: 100%;
-  height: 100%;
-  min-height: 180px;
-  object-fit: cover;
+  height: auto;
   border-radius: 8px;
   display: block;
 }

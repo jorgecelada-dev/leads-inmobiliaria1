@@ -60,9 +60,6 @@ const OPCIONES_PLAZO = [
   ['exploring', 'Solo explorando'],
 ];
 
-// Caché de perfiles de trabajadores: { [id_usuario]: nombre }
-let perfilesPorId = {};
-
 // Rellena los <select> de filtro reutilizando las mismas listas de opciones
 // que usa la tabla, para no duplicar los valores en dos sitios distintos.
 function poblarSelectDeFiltro(select, opciones) {
@@ -203,24 +200,6 @@ logoutBtn.addEventListener('click', () => {
   mostrarLogin();
 });
 
-// --- Cargar perfiles de trabajadores (para mostrar nombre en "Última edición") ---
-async function cargarPerfiles() {
-  const token = getToken();
-  try {
-    const respuesta = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,full_name`, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    if (!respuesta.ok) return;
-    const perfiles = await respuesta.json();
-    perfilesPorId = Object.fromEntries(perfiles.map((p) => [p.id, p.full_name]));
-  } catch (error) {
-    console.error('No se pudieron cargar los perfiles de trabajadores:', error);
-  }
-}
-
 // --- Construir la URL de leads a partir de todos los filtros activos ---
 function construirUrlLeads() {
   const params = new URLSearchParams();
@@ -249,8 +228,6 @@ async function cargarLeads() {
   const url = construirUrlLeads();
 
   try {
-    await cargarPerfiles();
-
     const respuesta = await fetch(url, {
       headers: {
         'apikey': SUPABASE_ANON_KEY,
@@ -318,8 +295,24 @@ function renderLeads(leads) {
 
   leads.forEach((lead) => {
     const fila = document.createElement('tr');
-    const fecha = formatearFechaHora(lead.created_at).split(',')[0];
-    fila.innerHTML = `<td>${fecha}</td>`;
+
+    // Interesado (suscripción a campañas de email) — primera columna, a la izquierda
+    const celdaMarketing = document.createElement('td');
+    celdaMarketing.className = 'admin-celda-interesado';
+    const checkboxMarketing = document.createElement('input');
+    checkboxMarketing.type = 'checkbox';
+    checkboxMarketing.className = 'checkbox-marketing';
+    checkboxMarketing.checked = Boolean(lead.marketing_opt_in);
+    checkboxMarketing.addEventListener('change', () => {
+      actualizarLead(lead.id, { marketing_opt_in: checkboxMarketing.checked });
+    });
+    celdaMarketing.appendChild(checkboxMarketing);
+    fila.appendChild(celdaMarketing);
+
+    // Fecha
+    const celdaFecha = document.createElement('td');
+    celdaFecha.textContent = formatearFechaHora(lead.created_at).split(',')[0];
+    fila.appendChild(celdaFecha);
 
     // Nombre
     const celdaNombre = document.createElement('td');
@@ -423,28 +416,6 @@ function renderLeads(leads) {
     });
     celdaNotas.appendChild(textareaNotas);
     fila.appendChild(celdaNotas);
-
-    // Marketing (suscripción a campañas de email)
-    const celdaMarketing = document.createElement('td');
-    const checkboxMarketing = document.createElement('input');
-    checkboxMarketing.type = 'checkbox';
-    checkboxMarketing.className = 'checkbox-marketing';
-    checkboxMarketing.checked = Boolean(lead.marketing_opt_in);
-    checkboxMarketing.addEventListener('change', () => {
-      actualizarLead(lead.id, { marketing_opt_in: checkboxMarketing.checked });
-    });
-    celdaMarketing.appendChild(checkboxMarketing);
-    fila.appendChild(celdaMarketing);
-
-    // Última edición
-    const celdaEdicion = document.createElement('td');
-    if (lead.updated_at) {
-      const nombre = perfilesPorId[lead.updated_by] || 'Desconocido';
-      celdaEdicion.innerHTML = `${escapeHtml(nombre)}<br><span class="admin-tel">${formatearFechaHora(lead.updated_at)}</span>`;
-    } else {
-      celdaEdicion.textContent = '—';
-    }
-    fila.appendChild(celdaEdicion);
 
     // Acciones
     const celdaAcciones = document.createElement('td');

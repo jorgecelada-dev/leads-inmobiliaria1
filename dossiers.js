@@ -150,6 +150,7 @@ const cancelarEditorBtn = document.getElementById('cancelar-editor-btn');
 const eliminarDossierBtn = document.getElementById('eliminar-dossier-btn');
 const generarPdfBtn = document.getElementById('generar-pdf-btn');
 const verPdfLink = document.getElementById('ver-pdf-link');
+const pdfVersionesLista = document.getElementById('pdf-versiones-lista');
 const preview = document.getElementById('dossier-preview');
 const dossierPreviewEditando = document.getElementById('dossier-preview-editando');
 const dossierPreviewAcciones = document.getElementById('dossier-preview-acciones');
@@ -703,6 +704,7 @@ function abrirEditor(dossier) {
     verPdfLink.href = dossier.pdf_url;
     verPdfLink.hidden = false;
   }
+  renderVersionesPdf(dossier?.pdf_versions || []);
 
   eliminarDossierBtn.hidden = !dossier;
 
@@ -773,6 +775,7 @@ async function eliminarDossier(dossier) {
       extraerRutaStorage(dossier.floor_plan_url),
       extraerRutaStorage(dossier.pdf_url),
       ...(dossier.gallery || []).map((foto) => extraerRutaStorage(foto.url)),
+      ...(dossier.pdf_versions || []).map((v) => extraerRutaStorage(v.url)),
     ]);
 
     if (dossierActualId === dossier.id) {
@@ -1178,7 +1181,7 @@ function renderPreview() {
 
   preview.innerHTML = `
     <div class="dossier-pdf">
-      <div class="dossier-pdf-portada" style="background-image:url('${portada}')">
+      <div class="dossier-pdf-portada"${portada ? ` style="background-image:url('${portada}')"` : ''}>
         <div class="dossier-pdf-portada-overlay">
           <h1>${escapeHtml(titulo)}</h1>
           <p>${escapeHtml(direccion || zona || '')}</p>
@@ -1227,6 +1230,18 @@ function renderPreview() {
 // Vuelve a pintar la vista previa en vivo mientras se rellena el formulario
 dossierForm.addEventListener('input', renderPreview);
 
+// Muestra el historial de PDFs generados (v1, v2, ...) de más reciente a más antiguo
+function renderVersionesPdf(versiones) {
+  if (!versiones || versiones.length === 0) {
+    pdfVersionesLista.innerHTML = '';
+    return;
+  }
+  pdfVersionesLista.innerHTML = [...versiones]
+    .reverse()
+    .map((v) => `<a href="${v.url}" target="_blank" rel="noopener">v${v.version}</a>`)
+    .join('');
+}
+
 // --- Generar PDF a partir de la vista previa y subirlo a Storage ---
 generarPdfBtn.addEventListener('click', async () => {
   if (!dossierActualId) {
@@ -1236,12 +1251,44 @@ generarPdfBtn.addEventListener('click', async () => {
   }
   generarPdfBtn.disabled = true;
   generarPdfBtn.textContent = 'Generando…';
+  // Causa real del PDF en blanco (confirmada con pruebas automatizadas):
+  // abrirEditor() hace scrollIntoView() al abrir el dossier, y si la página
+  // queda desplazada (scroll > 0), html2canvas captura la zona equivocada y
+  // el resultado sale en blanco. La solución es subir el scroll a 0 antes de
+  // capturar — nada de matemáticas de compensación, eso es lo que fallaba.
+  window.scrollTo(0, 0);
+  // El panel de vista previa usa "position: sticky" para quedarse fijo al
+  // hacer scroll; lo desactivamos también durante la captura por seguridad.
+  const previewWrap = document.querySelector('.dossier-preview-wrap');
+  const posicionOriginal = previewWrap.style.position;
+  previewWrap.style.position = 'static';
   try {
+    // Las fotos (portada, galería, plano) se cargan desde Supabase Storage,
+    // así que pueden no estar completamente descargadas todavía aunque ya se
+    // vean en pantalla. Si html2canvas empieza a capturar antes de que
+    // terminen de cargar, el resultado puede salir en blanco o incompleto.
+    const imagenesPendientes = Array.from(preview.querySelectorAll('img')).map((img) => {
+      if (img.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        img.addEventListener('load', resolve, { once: true });
+        img.addEventListener('error', resolve, { once: true });
+      });
+    });
+    await Promise.all(imagenesPendientes);
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+
     const pdfBlob = await html2pdf()
       .set({ html2canvas: { useCORS: true, scale: 2 } })
       .from(preview.firstElementChild)
       .outputPdf('blob');
-    const nombreArchivo = `pdfs/${dossierActualId}.pdf`;
+
+    // Cada generación se guarda como una versión nueva (v1, v2, ...) en vez
+    // de sobrescribir el archivo anterior, para poder ver el historial.
+    const versionesExistentes = Array.isArray(dossierActual.pdf_versions) ? dossierActual.pdf_versions : [];
+    const numeroVersion = versionesExistentes.length + 1;
+    const nombreArchivo = `pdfs/${dossierActualId}-v${numeroVersion}.pdf`;
 
     const respuestaSubida = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${nombreArchivo}`, {
       method: 'POST',
@@ -1256,6 +1303,10 @@ generarPdfBtn.addEventListener('click', async () => {
     if (!respuestaSubida.ok) throw new Error(`Error ${respuestaSubida.status}`);
 
     const pdfUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${nombreArchivo}`;
+    const nuevasVersiones = [
+      ...versionesExistentes,
+      { version: numeroVersion, url: pdfUrl, created_at: new Date().toISOString() },
+    ];
     const respuestaPatch = await fetch(`${SUPABASE_URL}/rest/v1/dossiers?id=eq.${dossierActualId}`, {
       method: 'PATCH',
       headers: {
@@ -1264,13 +1315,15 @@ generarPdfBtn.addEventListener('click', async () => {
         'Authorization': `Bearer ${getToken()}`,
         'Prefer': 'return=minimal',
       },
-      body: JSON.stringify({ pdf_url: pdfUrl }),
+      body: JSON.stringify({ pdf_url: pdfUrl, pdf_versions: nuevasVersiones }),
     });
     if (!respuestaPatch.ok) throw new Error(`Error ${respuestaPatch.status}`);
 
     dossierActual.pdf_url = pdfUrl;
+    dossierActual.pdf_versions = nuevasVersiones;
     verPdfLink.href = pdfUrl;
     verPdfLink.hidden = false;
+    renderVersionesPdf(nuevasVersiones);
     dossierFormStatus.textContent = 'PDF generado correctamente.';
     dossierFormStatus.className = 'form-status ok';
     cargarDossiers();
@@ -1278,6 +1331,7 @@ generarPdfBtn.addEventListener('click', async () => {
     dossierFormStatus.textContent = 'Error al generar el PDF: ' + error.message;
     dossierFormStatus.className = 'form-status error';
   } finally {
+    previewWrap.style.position = posicionOriginal;
     generarPdfBtn.disabled = false;
     generarPdfBtn.textContent = 'Generar PDF';
   }

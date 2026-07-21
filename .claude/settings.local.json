@@ -3,7 +3,9 @@
     "allow": [
       "Bash(node --check admin.js)",
       "Bash(node -e ' *)",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "Bash(grep -A 10 '<pre id=\"log\"' \"/c/Users/Usuario/AppData/Local/Temp/claude/c--Users-Usuario-Desktop-leads-inmobiliaria/d2b93d93-0e9a-4317-8314-12c614322cb6/scratchpad/pdf-repro/dump.html\")",
+      "Read(//c/Users/Usuario/AppData/Local/Temp/claude/c--Users-Usuario-Desktop-leads-inmobiliaria/d2b93d93-0e9a-4317-8314-12c614322cb6/scratchpad/pdf-repro/**)"
     ]
   }
 }
