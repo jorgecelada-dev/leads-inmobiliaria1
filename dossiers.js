@@ -1302,7 +1302,12 @@ function renderPreview() {
   }
 
   const estadoVenta = dossierActual.sale_status || 'available';
-  const etiquetaEstadoVenta = ETIQUETAS_ESTADO_VENTA[estadoVenta] || 'Disponible';
+  // En la portada del PDF "Disponible" se sustituye por un texto más
+  // comercial ("En exclusiva"); el resto del panel (pestaña Seguimiento,
+  // selector de estado) mantiene "Disponible" como estado real interno.
+  const etiquetaEstadoVenta = estadoVenta === 'available'
+    ? 'En exclusiva'
+    : (ETIQUETAS_ESTADO_VENTA[estadoVenta] || 'Disponible');
   const referenciaDossier = 'ISP-' + (dossierActualId ? dossierActualId.replace(/-/g, '').slice(0, 4).toUpperCase() : '0000');
 
   const numeroWhatsapp = CONTACTO_TELEFONO.replace(/[^0-9]/g, '');
@@ -1586,19 +1591,34 @@ generarPdfBtn.addEventListener('click', async () => {
     // Una sola página continua del alto exacto del contenido, en vez de
     // encajarlo en páginas A4 fijas — así el resultado exportado coincide
     // siempre con la vista previa, sea cual sea la cantidad de contenido.
+    //
+    // El tamaño de página se fija a partir del canvas YA CAPTURADO por
+    // html2canvas (worker.get('canvas')), no a partir de offsetWidth/
+    // scrollHeight del DOM medidos antes de capturar: con el escalado de
+    // pantalla de Windows (125%, 150%...) esas dos medidas pueden no
+    // coincidir en 1-2px, y ese sobrante bastaba para que html2pdf creara
+    // una segunda página en blanco solo para esos pocos píxeles de más.
     const elDossier = preview.firstElementChild;
-    const anchoPagina = elDossier.offsetWidth;
-    const altoPagina = elDossier.scrollHeight;
+    const escalaCaptura = 2;
 
-    const pdfBlob = await html2pdf()
-      .set({
-        margin: 0,
-        html2canvas: { useCORS: true, scale: 2 },
-        jsPDF: { unit: 'px', format: [anchoPagina, altoPagina], orientation: 'portrait' },
-        pagebreak: { mode: [] },
-      })
-      .from(elDossier)
-      .outputPdf('blob');
+    const worker = html2pdf().set({
+      margin: 0,
+      html2canvas: { useCORS: true, scale: escalaCaptura },
+      jsPDF: { unit: 'px', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: [] },
+    }).from(elDossier);
+
+    await worker.toCanvas();
+    const canvasCapturado = await worker.get('canvas');
+    await worker.set({
+      jsPDF: {
+        unit: 'px',
+        format: [canvasCapturado.width / escalaCaptura, canvasCapturado.height / escalaCaptura],
+        orientation: 'portrait',
+      },
+    });
+
+    const pdfBlob = await worker.outputPdf('blob');
 
     // Cada generación se guarda como una versión nueva (v1, v2, ...) en vez
     // de sobrescribir el archivo anterior, para poder ver el historial.

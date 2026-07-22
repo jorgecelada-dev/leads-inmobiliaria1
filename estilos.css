@@ -399,6 +399,17 @@ h1, h2, h3 {
   align-items: center;
 }
 
+.admin-header-acciones .btn-primary {
+  margin-top: 0;
+  padding: 10px 20px;
+  border: 1px solid transparent;
+  /* Los <button> no heredan el line-height:1.6 del body (los navegadores
+     fuerzan "normal" en controles de formulario) mientras que el <a> de al
+     lado sí lo hereda — sin esto los dos salían de distinta altura pese a
+     tener el mismo padding. */
+  line-height: 1.6;
+}
+
 .admin-header h1 {
   color: #4E413B;
   font-size: 1.8rem;
