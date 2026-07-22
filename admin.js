@@ -299,6 +299,7 @@ function renderLeads(leads) {
     // Interesado (suscripción a campañas de email) — primera columna, a la izquierda
     const celdaMarketing = document.createElement('td');
     celdaMarketing.className = 'admin-celda-interesado';
+    celdaMarketing.dataset.label = 'Interesado';
     const checkboxMarketing = document.createElement('input');
     checkboxMarketing.type = 'checkbox';
     checkboxMarketing.className = 'checkbox-marketing';
@@ -311,11 +312,13 @@ function renderLeads(leads) {
 
     // Fecha
     const celdaFecha = document.createElement('td');
+    celdaFecha.dataset.label = 'Fecha';
     celdaFecha.textContent = formatearFechaHora(lead.created_at).split(',')[0];
     fila.appendChild(celdaFecha);
 
     // Nombre
     const celdaNombre = document.createElement('td');
+    celdaNombre.dataset.label = 'Nombre';
     celdaNombre.appendChild(
       crearInputTexto(lead.full_name, 'text', (valor) => actualizarLead(lead.id, { full_name: valor })),
     );
@@ -323,6 +326,7 @@ function renderLeads(leads) {
 
     // Contacto: email + teléfono
     const celdaContacto = document.createElement('td');
+    celdaContacto.dataset.label = 'Contacto';
     celdaContacto.appendChild(
       crearInputTexto(lead.email, 'email', (valor) => actualizarLead(lead.id, { email: valor })),
     );
@@ -333,6 +337,7 @@ function renderLeads(leads) {
 
     // País
     const celdaPais = document.createElement('td');
+    celdaPais.dataset.label = 'País';
     celdaPais.appendChild(
       crearInputTexto(lead.country, 'text', (valor) => actualizarLead(lead.id, { country: valor })),
     );
@@ -340,6 +345,7 @@ function renderLeads(leads) {
 
     // Presupuesto
     const celdaPresupuesto = document.createElement('td');
+    celdaPresupuesto.dataset.label = 'Presupuesto';
     celdaPresupuesto.appendChild(
       crearSelect(OPCIONES_PRESUPUESTO, lead.budget_range, (valor) => actualizarLead(lead.id, { budget_range: valor })),
     );
@@ -347,6 +353,7 @@ function renderLeads(leads) {
 
     // Zona
     const celdaZona = document.createElement('td');
+    celdaZona.dataset.label = 'Zona';
     celdaZona.appendChild(
       crearSelect(OPCIONES_ZONA, lead.region_interest, (valor) => actualizarLead(lead.id, { region_interest: valor })),
     );
@@ -354,6 +361,7 @@ function renderLeads(leads) {
 
     // Plazo
     const celdaPlazo = document.createElement('td');
+    celdaPlazo.dataset.label = 'Plazo';
     celdaPlazo.appendChild(
       crearSelect(OPCIONES_PLAZO, lead.timeframe, (valor) => actualizarLead(lead.id, { timeframe: valor })),
     );
@@ -361,6 +369,7 @@ function renderLeads(leads) {
 
     // Propiedades: checkbox "posee" + nº de propiedades
     const celdaPropiedades = document.createElement('td');
+    celdaPropiedades.dataset.label = 'Propiedades';
     const checkboxPosee = document.createElement('input');
     checkboxPosee.type = 'checkbox';
     checkboxPosee.checked = Boolean(lead.owns_property_spain);
@@ -390,19 +399,25 @@ function renderLeads(leads) {
     celdaPropiedades.appendChild(inputCantidad);
     fila.appendChild(celdaPropiedades);
 
-    // Estado
+    // Estado (el color del borde identifica el estado de un vistazo, sin
+    // tener que leer el texto del desplegable)
     const celdaEstado = document.createElement('td');
-    celdaEstado.appendChild(
-      crearSelect(
-        Object.entries(ETIQUETAS_ESTADO),
-        lead.status,
-        (valor) => actualizarLead(lead.id, { status: valor }),
-      ),
+    celdaEstado.dataset.label = 'Estado';
+    const selectEstado = crearSelect(
+      Object.entries(ETIQUETAS_ESTADO),
+      lead.status,
+      (valor) => {
+        actualizarLead(lead.id, { status: valor });
+        selectEstado.className = `select-estado select-estado-${valor}`;
+      },
     );
+    selectEstado.className = `select-estado select-estado-${lead.status || 'new'}`;
+    celdaEstado.appendChild(selectEstado);
     fila.appendChild(celdaEstado);
 
     // Notas
     const celdaNotas = document.createElement('td');
+    celdaNotas.dataset.label = 'Notas';
     const textareaNotas = document.createElement('textarea');
     textareaNotas.className = 'admin-notas';
     textareaNotas.value = lead.notes || '';
@@ -419,6 +434,7 @@ function renderLeads(leads) {
 
     // Acciones
     const celdaAcciones = document.createElement('td');
+    celdaAcciones.dataset.label = 'Acciones';
     const botonEliminar = document.createElement('button');
     botonEliminar.type = 'button';
     botonEliminar.className = 'btn-eliminar';

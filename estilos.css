@@ -30,6 +30,8 @@ h1, h2, h3 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .logo {
@@ -59,6 +61,16 @@ h1, h2, h3 {
 .lang-toggle:hover {
   background-color: #FF6D24;
   color: #4E413B;
+}
+
+@media (max-width: 600px) {
+  .topbar-inner {
+    padding: 12px 16px;
+  }
+
+  .logo {
+    font-size: 1rem;
+  }
 }
 
 /* --- HERO --- */
@@ -485,17 +497,36 @@ h1, h2, h3 {
 
 .admin-tabla th {
   text-align: left;
-  padding: 10px 6px;
+  padding: 12px 10px;
   background-color: #4E413B;
   color: #EEF4F3;
   font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
+.admin-tabla th:first-child {
+  border-top-left-radius: 6px;
+}
+
+.admin-tabla th:last-child {
+  border-top-right-radius: 6px;
+}
+
 .admin-tabla td {
-  padding: 8px 6px;
+  padding: 10px;
   border-bottom: 1px solid #DCE7E5;
   vertical-align: top;
+}
+
+.admin-tabla tbody tr:nth-child(even) {
+  background-color: #FAF8F4;
+}
+
+.admin-tabla tbody tr:hover {
+  background-color: #F1EDE6;
 }
 
 .admin-tabla tr:last-child td {
@@ -517,6 +548,41 @@ h1, h2, h3 {
   font-size: 0.78rem;
 }
 
+/* Estado del lead: un borde de color a la izquierda identifica el estado
+   de un vistazo, sin tener que leer el texto del desplegable. */
+.select-estado {
+  max-width: 120px;
+  border-left: 3px solid #C9BEB8;
+  font-weight: 600;
+}
+
+.select-estado-new {
+  border-left-color: #8C7C71;
+}
+
+.select-estado-contacted {
+  border-left-color: #FF6D24;
+}
+
+.select-estado-qualified {
+  border-left-color: #2F6F9E;
+}
+
+.select-estado-won {
+  border-left-color: #1D7A4C;
+  color: #1D7A4C;
+}
+
+.select-estado-lost {
+  border-left-color: #B3261E;
+  color: #B3261E;
+}
+
+.select-estado-blacklisted {
+  border-left-color: #241C18;
+  background-color: #F3EFEA;
+}
+
 .admin-celda-interesado {
   text-align: center;
   width: 40px;
@@ -525,6 +591,87 @@ h1, h2, h3 {
 .admin-tabla th:first-child {
   width: 40px;
   text-align: center;
+}
+
+/* En móvil una tabla ancha nunca cabe bien (o se reduce ilegible o obliga
+   a hacer scroll horizontal) — así que cada fila se convierte en una
+   tarjeta apilada. Reutiliza exactamente el mismo <table> y el mismo JS
+   (los inputs/selects siguen siendo los mismos elementos con sus mismos
+   listeners), solo cambia cómo se ve. */
+@media (max-width: 900px) {
+  .admin-tabla-wrap {
+    overflow-x: visible;
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  .admin-tabla {
+    min-width: 0;
+    font-size: 0.85rem;
+  }
+
+  .admin-tabla thead {
+    display: none;
+  }
+
+  .admin-tabla, .admin-tabla tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-tabla tbody tr {
+    display: block;
+    background-color: #FFFFFF;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(78, 65, 59, 0.08);
+    padding: 6px 16px;
+    margin-bottom: 14px;
+  }
+
+  .admin-tabla tbody tr:nth-child(even) {
+    background-color: #FFFFFF;
+  }
+
+  .admin-tabla tbody tr:hover {
+    background-color: #FFFFFF;
+  }
+
+  .admin-tabla td {
+    display: block;
+    width: auto;
+    padding: 10px 0;
+    border-bottom: 1px solid #EEE7E0;
+  }
+
+  .admin-tabla tr:last-child td {
+    border-bottom: 1px solid #EEE7E0;
+  }
+
+  .admin-tabla td:last-child {
+    border-bottom: none;
+  }
+
+  .admin-tabla td::before {
+    content: attr(data-label);
+    display: block;
+    font-family: 'Public Sans', sans-serif;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8C7C71;
+    margin-bottom: 6px;
+  }
+
+  .admin-tabla select,
+  .select-estado {
+    max-width: none;
+  }
+
+  .admin-celda-interesado {
+    width: auto;
+    text-align: left;
+  }
 }
 
 .marketing-nota {
@@ -649,7 +796,8 @@ h1, h2, h3 {
 .topbar-nav {
   display: flex;
   align-items: center;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 12px 20px;
 }
 
 .nav-link {
@@ -787,12 +935,101 @@ h1, h2, h3 {
   border-radius: 6px;
   padding: 28px;
   box-shadow: 0 2px 12px rgba(78, 65, 59,0.06);
+  /* Sin esto, un hijo de grid no se encoge por debajo del ancho mínimo de
+     su contenido: la vista previa del PDF (a la derecha) tiene contenido
+     que no se puede partir, y eso "empujaba" también a este formulario a
+     ser más ancho que la pantalla en móvil. */
+  min-width: 0;
 }
 
 .dossier-editor-form h2 {
   font-size: 1.3rem;
   color: #4E413B;
   margin-bottom: 20px;
+}
+
+/* Cabeceras de sección dentro del formulario (Datos básicos, Ubicación,
+   Datos de la vivienda, Fotos) — el formulario es una sola lista larga de
+   campos y estas ayudan a orientarse, sobre todo en móvil donde no cabe
+   la vista previa al lado para hacerse una idea del progreso. */
+.dossier-form-seccion {
+  font-family: 'Public Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8C7C71;
+  margin: 28px 0 6px;
+  padding-top: 20px;
+  border-top: 1px solid #E3DED4;
+  /* La topbar es sticky (se queda fija arriba); sin esto, al pulsar un
+     acceso rápido el título de la sección queda tapado justo debajo de
+     ella en vez de visible. */
+  scroll-margin-top: 140px;
+}
+
+.dossier-form-seccion:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.dossier-form-accesos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.dossier-form-accesos a {
+  font-family: 'Public Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4E413B;
+  text-decoration: none;
+  padding: 6px 12px;
+  border: 1px solid #C9BEB8;
+  border-radius: 999px;
+  background-color: #F6F3EE;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.dossier-form-accesos a:hover {
+  background-color: #DCE7E5;
+  border-color: #8C7C71;
+}
+
+/* Botón flotante para saltar a la vista previa sin hacer scroll manual.
+   Solo tiene sentido en móvil: en escritorio la vista previa ya está
+   visible al lado del formulario. */
+.dossier-ver-preview-flotante {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .dossier-ver-preview-flotante {
+    display: block;
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 50;
+    background-color: #FF6D24;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 20px;
+    font-family: 'Public Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 16px rgba(78, 65, 59, 0.28);
+    cursor: pointer;
+  }
+
+  /* El botón flotante se queda fijo abajo a la derecha — sin este hueco,
+     el final del formulario ("Salir de dossier") queda tapado detrás. */
+  .dossier-editor-form {
+    padding-bottom: 130px;
+  }
 }
 
 /* --- Pestañas Mis inmuebles: Dossiers / Seguimiento --- */
@@ -1136,6 +1373,7 @@ h1, h2, h3 {
 .dossier-preview-wrap {
   position: sticky;
   top: 90px;
+  min-width: 0;
 }
 
 .dossier-preview-editando {

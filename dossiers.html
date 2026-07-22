@@ -67,12 +67,22 @@
       <section class="dossier-editor" id="dossier-editor" hidden>
       <div class="dossier-editor-form">
         <h2 id="editor-titulo">Nuevo dossier</h2>
+        <nav class="dossier-form-accesos" aria-label="Ir a sección">
+          <a href="#form-seccion-datos">Datos</a>
+          <a href="#form-seccion-ubicacion">Ubicación</a>
+          <a href="#form-seccion-vivienda">Vivienda</a>
+          <a href="#form-seccion-fotos">Fotos</a>
+        </nav>
         <form id="dossier-form">
+
+          <h3 class="dossier-form-seccion" id="form-seccion-datos">Datos básicos</h3>
 
           <div class="campo">
             <label for="d-title">Título</label>
             <input type="text" id="d-title" required>
           </div>
+
+          <h3 class="dossier-form-seccion" id="form-seccion-ubicacion">Ubicación</h3>
 
           <div class="campo-fila">
             <div class="campo campo-autocompletado">
@@ -94,6 +104,18 @@
             <button type="button" class="btn-secundario" id="buscar-mapa-btn">Buscar en el mapa</button>
             <p class="form-status" id="mapa-status"></p>
           </div>
+
+          <div class="campo">
+            <label>Puntos de interés cercanos</label>
+            <div id="poi-grid" class="poi-grid"></div>
+          </div>
+
+          <div class="campo">
+            <label for="d-area">Notas adicionales sobre la zona (opcional)</label>
+            <textarea id="d-area" rows="3" placeholder="Cualquier detalle que no encaje en las casillas de arriba"></textarea>
+          </div>
+
+          <h3 class="dossier-form-seccion" id="form-seccion-vivienda">Datos de la vivienda</h3>
 
           <div class="campo-fila">
             <div class="campo">
@@ -230,15 +252,7 @@
             <textarea id="d-description" rows="5"></textarea>
           </div>
 
-          <div class="campo">
-            <label>Puntos de interés cercanos</label>
-            <div id="poi-grid" class="poi-grid"></div>
-          </div>
-
-          <div class="campo">
-            <label for="d-area">Notas adicionales sobre la zona (opcional)</label>
-            <textarea id="d-area" rows="3" placeholder="Cualquier detalle que no encaje en las casillas de arriba"></textarea>
-          </div>
+          <h3 class="dossier-form-seccion" id="form-seccion-fotos">Fotos</h3>
 
           <div class="campo">
             <label for="d-cover">Foto de portada</label>
@@ -268,6 +282,8 @@
           <p class="form-status" id="dossier-form-status"></p>
         </form>
       </div>
+
+      <button type="button" class="dossier-ver-preview-flotante" id="ver-preview-flotante-btn">Ver vista previa ↓</button>
 
       <div class="dossier-preview-wrap">
         <p class="dossier-preview-editando" id="dossier-preview-editando" hidden></p>

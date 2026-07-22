@@ -198,6 +198,11 @@ const preview = document.getElementById('dossier-preview');
 const dossierPreviewEditando = document.getElementById('dossier-preview-editando');
 const dossierPreviewAcciones = document.getElementById('dossier-preview-acciones');
 const logoutBtn = document.getElementById('logout-btn');
+const verPreviewFlotanteBtn = document.getElementById('ver-preview-flotante-btn');
+
+verPreviewFlotanteBtn.addEventListener('click', () => {
+  document.querySelector('.dossier-preview-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 
 let dossierActualId = null; // null mientras se está creando uno nuevo
 let dossierActual = {};
