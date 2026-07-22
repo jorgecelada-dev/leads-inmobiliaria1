@@ -1599,11 +1599,16 @@ generarPdfBtn.addEventListener('click', async () => {
     // coincidir en 1-2px, y ese sobrante bastaba para que html2pdf creara
     // una segunda página en blanco solo para esos pocos píxeles de más.
     const elDossier = preview.firstElementChild;
-    const escalaCaptura = 2;
+    // Escala 3 (antes 2): a escala 2 el texto pequeño (etiquetas, iconos)
+    // se veía con el borde ligeramente escalonado al hacer zoom en el PDF;
+    // con 3 sale nítido. quality 0.98 evita que las fotos pierdan detalle
+    // al comprimirlas a JPEG dentro del PDF.
+    const escalaCaptura = 3;
 
     const worker = html2pdf().set({
       margin: 0,
       html2canvas: { useCORS: true, scale: escalaCaptura },
+      image: { type: 'jpeg', quality: 0.98 },
       jsPDF: { unit: 'px', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: [] },
     }).from(elDossier);
