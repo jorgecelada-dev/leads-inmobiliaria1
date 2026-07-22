@@ -250,6 +250,41 @@ h1, h2, h3 {
   border-color: #FF6D24;
 }
 
+.campo-autocompletado {
+  position: relative;
+}
+
+.autocompletado-lista {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 2px 0 0;
+  padding: 4px;
+  list-style: none;
+  background-color: #FFFFFF;
+  border: 1px solid #C9BEB8;
+  border-radius: 4px;
+  box-shadow: 0 8px 20px rgba(78, 65, 59, 0.14);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.autocompletado-lista li {
+  padding: 9px 10px;
+  font-size: 0.87rem;
+  line-height: 1.4;
+  color: #4E413B;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.autocompletado-lista li:hover,
+.autocompletado-lista li.activa {
+  background-color: #F6F1EC;
+}
+
 .radio-fila {
   display: flex;
   gap: 24px;
@@ -678,6 +713,7 @@ h1, h2, h3 {
 
 .dossier-tarjeta-acciones button {
   flex: 1;
+  line-height: 1.4;
 }
 
 .btn-editar {
@@ -1055,6 +1091,8 @@ h1, h2, h3 {
 .dossier-editor-botones-principales .btn-primary,
 .dossier-editor-botones-principales .btn-eliminar {
   flex: 1;
+  margin-top: 0;
+  padding: 14px 20px;
 }
 
 .btn-guardar-dossier {

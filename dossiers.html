@@ -75,9 +75,10 @@
           </div>
 
           <div class="campo-fila">
-            <div class="campo">
+            <div class="campo campo-autocompletado">
               <label for="d-address">Dirección</label>
-              <input type="text" id="d-address">
+              <input type="text" id="d-address" autocomplete="off">
+              <ul id="d-address-sugerencias" class="autocompletado-lista" hidden></ul>
             </div>
             <div class="campo">
               <label for="d-region">Zona</label>

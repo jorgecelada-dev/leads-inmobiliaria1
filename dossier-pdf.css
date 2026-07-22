@@ -58,6 +58,56 @@
   margin-bottom: 13px;
 }
 
+/* Secciones con fondo oscuro (Radiografía de la inversión, Datos de la
+   vivienda) — refuerzan la identidad de marca (Espresso + Coral) dentro
+   del cuerpo del documento, no solo en portada. */
+.dossier-pdf .pdf-bloque-oscuro {
+  background-color: var(--espresso);
+  color: #FFFFFF;
+  padding: 20px 22px;
+  border-radius: 4px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.dossier-pdf .pdf-bloque-oscuro .pdf-eyebrow {
+  color: var(--coral);
+}
+
+.dossier-pdf .pdf-bloque-oscuro .pdf-seccion-titulo {
+  color: #FFFFFF;
+}
+
+.dossier-pdf .pdf-bloque-oscuro .pdf-radiografia-item {
+  border-color: rgba(255, 255, 255, 0.14);
+  border-left-color: var(--coral);
+}
+
+.dossier-pdf .pdf-bloque-oscuro .pdf-radiografia-item .pdf-eyebrow {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dossier-pdf .pdf-bloque-oscuro .pdf-radiografia-item b {
+  color: #FFFFFF;
+}
+
+.dossier-pdf .pdf-bloque-oscuro .pdf-radiografia-item small {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dossier-pdf .pdf-bloque-oscuro .pdf-datos-grupo-titulo {
+  color: #FFFFFF;
+  border-bottom-color: var(--coral);
+}
+
+.dossier-pdf .pdf-bloque-oscuro .pdf-datos-fila span {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dossier-pdf .pdf-bloque-oscuro .pdf-datos-fila b {
+  color: #FFFFFF;
+}
+
 /* --- Cabecera / pie de página (se repiten en cada página menos la portada) --- */
 .dossier-pdf .pdf-cabecera {
   display: flex;

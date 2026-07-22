@@ -13,7 +13,7 @@ const CONTACTO_ROL = "Asesor de inversión inmobiliaria internacional";
 const GRUPOS_CONTEXTO_POI = [
   { titulo: 'Movilidad', keys: ['airport', 'metro', 'transport'] },
   { titulo: 'Servicios', keys: ['schools', 'shopping', 'hospital', 'bank', 'offices'] },
-  { titulo: 'Ocio', keys: ['restaurants', 'cafes', 'gym', 'parks', 'pool', 'beach'] },
+  { titulo: 'Ocio', keys: ['restaurants', 'cafes', 'gym', 'parks', 'beach'] },
 ];
 
 // Categorías fijas de puntos de interés, cada una con su icono (trazo simple,
@@ -29,7 +29,6 @@ const CATEGORIAS_POI = [
   { key: 'cafes', label: 'Cafeterías', icon: '<path d="M4 9 H18 V15 A5 5 0 0 1 13 20 H9 A5 5 0 0 1 4 15 Z"/><path d="M18 10 H20 A2.5 2.5 0 0 1 20 15 H18"/><path d="M8 3 c0 1.5 -1.5 1.5 -1.5 3 M12 3 c0 1.5 -1.5 1.5 -1.5 3"/>' },
   { key: 'gym', label: 'Gimnasios', icon: '<rect x="1.5" y="9" width="3" height="6"/><rect x="19.5" y="9" width="3" height="6"/><rect x="5.5" y="7" width="2.5" height="10"/><rect x="16" y="7" width="2.5" height="10"/><line x1="8" y1="12" x2="16" y2="12"/>' },
   { key: 'parks', label: 'Parques', icon: '<circle cx="12" cy="8" r="6"/><line x1="12" y1="14" x2="12" y2="21"/>' },
-  { key: 'pool', label: 'Piscinas cercanas', icon: '<path d="M2 8c2 -2 4 -2 6 0s4 2 6 0s4 -2 6 0s4 2 6 0"/><path d="M2 14c2 -2 4 -2 6 0s4 2 6 0s4 -2 6 0s4 2 6 0"/><path d="M2 20c2 -2 4 -2 6 0s4 2 6 0s4 -2 6 0s4 2 6 0"/>' },
   { key: 'hospital', label: 'Hospitales', icon: '<rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="7.5" x2="12" y2="16.5"/><line x1="7.5" y1="12" x2="16.5" y2="12"/>' },
   { key: 'bank', label: 'Bancos', icon: '<path d="M3 10 L12 3 L21 10 Z"/><line x1="4" y1="10" x2="4" y2="19"/><line x1="9" y1="10" x2="9" y2="19"/><line x1="15" y1="10" x2="15" y2="19"/><line x1="20" y1="10" x2="20" y2="19"/><line x1="2" y1="20" x2="22" y2="20"/>' },
   { key: 'offices', label: 'Oficinas', icon: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7 V5 a2 2 0 0 1 2 -2 h4 a2 2 0 0 1 2 2 V7"/><line x1="3" y1="12.5" x2="21" y2="12.5"/>' },
@@ -72,7 +71,6 @@ const TERMINOS_BUSQUEDA_POI = {
   cafes: 'cafetería',
   gym: 'gimnasio',
   parks: 'parque',
-  pool: 'piscina',
   hospital: 'hospital',
   bank: 'banco',
   offices: 'oficinas',
@@ -591,6 +589,89 @@ async function actualizarMapaDesdeFormulario() {
 }
 
 document.getElementById('buscar-mapa-btn').addEventListener('click', actualizarMapaDesdeFormulario);
+
+// --- Autocompletado de direcciones: sugerencias en vivo mientras se escribe
+// (igual que el selector de lugares de Google Maps), usando Nominatim. Elegir
+// una sugerencia usa directamente sus coordenadas exactas, sin volver a
+// adivinar con una nueva búsqueda de texto libre — así se evita el problema
+// de que el mapa acabe mostrando una ubicación distinta a la que quiso decir
+// quien escribió la dirección.
+const listaSugerenciasDireccion = document.getElementById('d-address-sugerencias');
+let temporizadorSugerenciasDireccion = null;
+let sugerenciasDireccionActuales = [];
+
+function ocultarSugerenciasDireccion() {
+  listaSugerenciasDireccion.hidden = true;
+  listaSugerenciasDireccion.innerHTML = '';
+  sugerenciasDireccionActuales = [];
+}
+
+async function buscarSugerenciasDireccion(texto) {
+  const params = new URLSearchParams({
+    format: 'json',
+    addressdetails: '1',
+    limit: '5',
+    countrycodes: 'es',
+    q: texto,
+  });
+  const respuesta = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+  if (!respuesta.ok) return [];
+  return respuesta.json();
+}
+
+function seleccionarSugerenciaDireccion(resultado) {
+  const direccionPostal = resultado.address || {};
+  const calle = [direccionPostal.road, direccionPostal.house_number].filter(Boolean).join(', ') || resultado.display_name.split(',')[0];
+  const zona = direccionPostal.city || direccionPostal.town || direccionPostal.village || direccionPostal.municipality || '';
+
+  inputDireccion.value = calle;
+  if (zona) inputZona.value = zona;
+  ocultarSugerenciasDireccion();
+
+  mapaLat = Number(resultado.lat);
+  mapaLng = Number(resultado.lon);
+  mostrarMapa(mapaLat, mapaLng);
+  mapaStatus.textContent = '';
+  mapaStatus.className = 'form-status ok';
+  rellenarDistanciasFaltantes(mapaLat, mapaLng);
+  renderPreview();
+}
+
+inputDireccion.addEventListener('input', () => {
+  clearTimeout(temporizadorSugerenciasDireccion);
+  const texto = inputDireccion.value.trim();
+  if (texto.length < 4) {
+    ocultarSugerenciasDireccion();
+    return;
+  }
+  temporizadorSugerenciasDireccion = setTimeout(async () => {
+    const resultados = await buscarSugerenciasDireccion(texto);
+    sugerenciasDireccionActuales = resultados;
+    if (!resultados.length) {
+      ocultarSugerenciasDireccion();
+      return;
+    }
+    listaSugerenciasDireccion.innerHTML = resultados
+      .map((r, i) => `<li data-indice="${i}">${escapeHtml(r.display_name)}</li>`)
+      .join('');
+    listaSugerenciasDireccion.hidden = false;
+  }, 400);
+});
+
+listaSugerenciasDireccion.addEventListener('click', (evento) => {
+  const li = evento.target.closest('li');
+  if (!li) return;
+  const resultado = sugerenciasDireccionActuales[Number(li.dataset.indice)];
+  if (resultado) seleccionarSugerenciaDireccion(resultado);
+});
+
+inputDireccion.addEventListener('keydown', (evento) => {
+  if (evento.key === 'Escape') ocultarSugerenciasDireccion();
+});
+
+document.addEventListener('click', (evento) => {
+  if (!evento.target.closest('.campo-autocompletado')) ocultarSugerenciasDireccion();
+});
 
 function escapeHtml(texto) {
   const div = document.createElement('div');
@@ -1288,7 +1369,7 @@ function renderPreview() {
         </div>` : ''}
 
         ${(precioM2Valor || costeAnual || alquilerEstimado) ? `
-        <div class="pdf-bloque">
+        <div class="pdf-bloque pdf-bloque-oscuro">
           <span class="pdf-eyebrow">Para inversores</span>
           <h2 class="pdf-seccion-titulo">Radiografía de la inversión</h2>
           <div class="pdf-radiografia">
@@ -1326,7 +1407,7 @@ function renderPreview() {
         </div>` : ''}
 
         ${(grupoDistribucion.length || grupoEstadoVivienda.length || grupoGastos.length) ? `
-        <div class="pdf-bloque">
+        <div class="pdf-bloque pdf-bloque-oscuro">
           <span class="pdf-eyebrow">Datos de la vivienda</span>
           <div class="pdf-datos-vivienda">
             ${renderGrupoDatos('Distribución', grupoDistribucion)}
@@ -1338,6 +1419,20 @@ function renderPreview() {
 
       <section class="pdf-pagina">
 
+
+        ${galeria.length ? `
+        <div class="pdf-bloque">
+          <span class="pdf-eyebrow">Galería</span>
+          <div class="pdf-galeria">
+            ${galeriaVisible.map((foto) => `
+              <figure>
+                <img src="${foto.url}">
+                ${foto.caption ? `<figcaption>${escapeHtml(foto.caption)}</figcaption>` : ''}
+              </figure>
+            `).join('')}
+            ${galeriaRestantes ? `<div class="pdf-galeria-mas">+${galeriaRestantes} fotos más</div>` : ''}
+          </div>
+        </div>` : ''}
 
         <div class="pdf-bloque">
           <span class="pdf-eyebrow">Contexto</span>
@@ -1372,20 +1467,6 @@ function renderPreview() {
 
           ${areaInfo ? `<p class="pdf-notas-zona">${escapeHtml(areaInfo).replace(/\n/g, '<br>')}</p>` : ''}
         </div>
-
-        ${galeria.length ? `
-        <div class="pdf-bloque">
-          <span class="pdf-eyebrow">Galería</span>
-          <div class="pdf-galeria">
-            ${galeriaVisible.map((foto) => `
-              <figure>
-                <img src="${foto.url}">
-                ${foto.caption ? `<figcaption>${escapeHtml(foto.caption)}</figcaption>` : ''}
-              </figure>
-            `).join('')}
-            ${galeriaRestantes ? `<div class="pdf-galeria-mas">+${galeriaRestantes} fotos más</div>` : ''}
-          </div>
-        </div>` : ''}
       </section>
 
       <section class="pdf-pagina">
@@ -1409,7 +1490,7 @@ function renderPreview() {
             <a class="pdf-contacto-whatsapp" href="https://wa.me/${numeroWhatsapp}?text=${mensajeWhatsapp}" target="_blank" rel="noopener">Escríbenos por WhatsApp →</a>
           </div>
           <p class="pdf-contacto-datos">${CONTACTO_EMAIL} · ${CONTACTO_TELEFONO}</p>
-          <p class="pdf-be-first">Be First.</p>
+          <p class="pdf-be-first">Unique opportunities.</p>
         </div>
 
         ${piePagina()}
