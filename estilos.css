@@ -44,6 +44,16 @@ h1, h2, h3 {
   gap: 9px;
 }
 
+.logo-isp {
+  color: #FF6D24;
+}
+
+.logo-separador {
+  font-weight: 400;
+  color: rgba(238, 244, 243, 0.4);
+  margin: 0 1px;
+}
+
 .lang-toggle {
   font-family: 'Public Sans', sans-serif;
   font-weight: 600;
