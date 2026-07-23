@@ -1227,8 +1227,12 @@ function renderPreview() {
       const diferencia = ((comparativa.precioM2 - comparativa.mediaM2) / comparativa.mediaM2) * 100;
       const zonaEtiqueta = comparativa.esReferenciaExterna ? comparativa.etiquetaReferencia : zona;
       const prefijo = comparativa.esReferenciaExterna ? 'media de referencia en' : 'media de';
+      // Si el dato no juega a favor (sale más caro que la referencia/media),
+      // no se muestra ninguna comparación — un dossier es un documento de
+      // venta, nunca debe destacar que el precio está por encima del
+      // mercado. Solo se muestra cuando es un argumento a favor.
       precioM2Caption = diferencia > 5
-        ? `↑ ${diferencia.toFixed(0)}% vs. ${prefijo} "${escapeHtml(zonaEtiqueta)}"`
+        ? ''
         : diferencia < -5
           ? `↓ ${Math.abs(diferencia).toFixed(0)}% vs. ${prefijo} "${escapeHtml(zonaEtiqueta)}"`
           : `En línea con la ${prefijo} "${escapeHtml(zonaEtiqueta)}"`;
@@ -1944,6 +1948,9 @@ segEstado.addEventListener('change', async () => {
 // "Salamanca, Madrid" siempre encontraría antes el genérico y nunca
 // llegaría a usar el precio específico de Salamanca).
 const PRECIOS_REFERENCIA_ZONA = [
+  // Barrios concretos (más específico que su distrito — va antes que el
+  // distrito para que gane el barrio si el texto menciona ambos).
+  { patron: /\bgoya\b/i, precioM2: 10500, etiqueta: 'Goya' },
   // Distritos de Madrid capital, de más caro a más asequible
   { patron: /salamanca/i, precioM2: 11996, etiqueta: 'Barrio de Salamanca' },
   { patron: /chamber[ií]/i, precioM2: 9977, etiqueta: 'Chamberí' },
@@ -2024,12 +2031,16 @@ function renderComparativa(dossier) {
   }
 
   const diferencia = ((resultado.precioM2 - resultado.mediaM2) / resultado.mediaM2) * 100;
-  const texto = diferencia > 5
-    ? `un ${diferencia.toFixed(0)}% por encima de la media`
-    : diferencia < -5
-      ? `un ${Math.abs(diferencia).toFixed(0)}% por debajo de la media`
-      : 'en línea con la media';
 
+  // Si el dato no juega a favor del inmueble (sale más caro que la
+  // referencia/media), no se muestra la comparación — solo interesa
+  // destacarla cuando es un argumento a favor.
+  if (diferencia > 5) {
+    seguimientoComparativa.innerHTML = `<b>${resultado.precioM2.toFixed(0)} €/m²</b> este inmueble.`;
+    return;
+  }
+
+  const texto = diferencia < -5 ? `un ${Math.abs(diferencia).toFixed(0)}% por debajo de la media` : 'en línea con la media';
   const etiquetaMedia = resultado.esReferenciaExterna
     ? `Precio medio de referencia en ${escapeHtml(resultado.etiquetaReferencia)}`
     : `Media en "${escapeHtml(dossier.region)}" (${resultado.comparables} inmueble(s))`;
