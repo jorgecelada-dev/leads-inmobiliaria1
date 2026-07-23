@@ -1936,8 +1936,36 @@ segEstado.addEventListener('change', async () => {
 // dossiers propios con los que comparar. Es solo un punto de partida
 // aproximado de mercado — en cuanto haya dossiers reales en esa zona, la
 // comparativa usa esos datos en vez de esta referencia.
+// Precios medios por distrito/zona (€/m², precio de oferta) — fuentes:
+// Idealista e informes de mercado (Fotocasa/Tinsa), Q2 2026. El precio real
+// de cierre suele ser entre un 5% y un 10% inferior al de oferta.
+// IMPORTANTE: el orden importa — se usa el PRIMER patrón que coincida, así
+// que los distritos concretos van antes que el genérico "madrid" (si no,
+// "Salamanca, Madrid" siempre encontraría antes el genérico y nunca
+// llegaría a usar el precio específico de Salamanca).
 const PRECIOS_REFERENCIA_ZONA = [
-  { patron: /madrid/i, precioM2: 10500, etiqueta: 'Madrid' },
+  // Distritos de Madrid capital, de más caro a más asequible
+  { patron: /salamanca/i, precioM2: 11996, etiqueta: 'Barrio de Salamanca' },
+  { patron: /chamber[ií]/i, precioM2: 9977, etiqueta: 'Chamberí' },
+  { patron: /retiro/i, precioM2: 9966, etiqueta: 'Retiro' },
+  { patron: /chamart[ií]n/i, precioM2: 9220, etiqueta: 'Chamartín' },
+  { patron: /\bcentro\b/i, precioM2: 8067, etiqueta: 'Centro' },
+  { patron: /moncloa/i, precioM2: 7505, etiqueta: 'Moncloa-Aravaca' },
+  { patron: /tetu[aá]n/i, precioM2: 6373, etiqueta: 'Tetuán' },
+  { patron: /carabanchel/i, precioM2: 3732, etiqueta: 'Carabanchel' },
+  { patron: /usera/i, precioM2: 3584, etiqueta: 'Usera' },
+  { patron: /vallecas/i, precioM2: 3251, etiqueta: 'Puente de Vallecas' },
+  { patron: /villaverde/i, precioM2: 3055, etiqueta: 'Villaverde' },
+  // Municipios de la corona metropolitana con mucho peso en inversión
+  { patron: /pozuelo/i, precioM2: 4535, etiqueta: 'Pozuelo de Alarcón' },
+  { patron: /majadahonda/i, precioM2: 3900, etiqueta: 'Majadahonda' },
+  { patron: /moraleja|alcobendas/i, precioM2: 3900, etiqueta: 'Alcobendas / La Moraleja' },
+  { patron: /boadilla/i, precioM2: 3748, etiqueta: 'Boadilla del Monte' },
+  { patron: /las rozas/i, precioM2: 3714, etiqueta: 'Las Rozas' },
+  { patron: /tres cantos/i, precioM2: 3628, etiqueta: 'Tres Cantos' },
+  // Genérico "Madrid" sin distrito reconocido: media de la ciudad completa
+  // (va el último a propósito, ver nota de arriba).
+  { patron: /madrid/i, precioM2: 7300, etiqueta: 'Madrid (media ciudad)' },
 ];
 
 function buscarPrecioReferenciaZona(region) {
