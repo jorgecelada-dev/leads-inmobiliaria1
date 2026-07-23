@@ -2077,6 +2077,12 @@ async function cargarSeguimiento() {
   }
 }
 
+// Icono de casilla del checklist de la tarjeta: cuadrado con check si "si"
+// es verdadero, cuadrado vacío si no.
+function iconoCheck(si) {
+  return `<span class="seguimiento-check-icono${si ? ' seguimiento-check-si' : ''}">✓</span>`;
+}
+
 function renderListaSeguimiento(dossiers) {
   seguimientoLista.innerHTML = '';
   dossiers.forEach((d) => {
@@ -2087,10 +2093,48 @@ function renderListaSeguimiento(dossiers) {
       <h3>${escapeHtml(d.title)}</h3>
       <p>${escapeHtml(d.region || d.address || '')}${d.price ? ' · ' + formatearPrecio(d.price) : ''}</p>
       <span class="seguimiento-estado-badge seguimiento-estado-${estado}">${ETIQUETAS_ESTADO_VENTA[estado] || estado}</span>
+      <div class="seguimiento-checklist">
+        <span class="seguimiento-check-item">Dossier ${iconoCheck(!!d.pdf_url)}</span>
+        <span class="seguimiento-check-item">Vídeos ${iconoCheck(!!d.video_url)}</span>
+        <span class="seguimiento-check-item seguimiento-check-clicable" data-accion="toggle-email">E-mail ${iconoCheck(!!d.marketing_email_ready)}</span>
+      </div>
     `;
     tarjeta.addEventListener('click', () => abrirSeguimientoDetalle(d));
+    tarjeta.querySelector('[data-accion="toggle-email"]').addEventListener('click', (evento) => {
+      evento.stopPropagation();
+      alternarEmailListo(d, tarjeta);
+    });
     seguimientoLista.appendChild(tarjeta);
   });
+}
+
+// Casilla manual "E-mail listo" del checklist de la tarjeta — de momento no
+// existe el compositor de emails de marketing (dossier + vídeo + mensaje +
+// firma), así que se marca a mano mientras tanto; el resto del checklist
+// (Dossier/Vídeos) refleja datos reales y no se puede tocar a mano.
+async function alternarEmailListo(dossier, tarjetaEl) {
+  const nuevoValor = !dossier.marketing_email_ready;
+  const icono = tarjetaEl.querySelector('[data-accion="toggle-email"] .seguimiento-check-icono');
+  icono.classList.toggle('seguimiento-check-si', nuevoValor);
+  dossier.marketing_email_ready = nuevoValor;
+  try {
+    const respuesta = await fetch(`${SUPABASE_URL}/rest/v1/dossiers?id=eq.${dossier.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${getToken()}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ marketing_email_ready: nuevoValor }),
+    });
+    if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
+  } catch (error) {
+    dossier.marketing_email_ready = !nuevoValor;
+    icono.classList.toggle('seguimiento-check-si', !nuevoValor);
+    seguimientoStatus.textContent = 'No se pudo guardar: ' + error.message;
+    seguimientoStatus.className = 'form-status error';
+  }
 }
 
 async function abrirSeguimientoDetalle(dossier) {

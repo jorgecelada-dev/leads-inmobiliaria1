@@ -107,8 +107,11 @@ create table dossiers (
   has_pool boolean default false,
   estimated_monthly_rent numeric,
   video_url text,
-  video_versions jsonb default '[]'
+  video_versions jsonb default '[]',
   -- Cada elemento: {"version": 1, "url": "...", "created_at": "..."}
+  marketing_email_ready boolean not null default false
+  -- Casilla manual del checklist de Seguimiento, mientras no exista el
+  -- compositor de emails de marketing (dossier + vídeo + mensaje + firma).
 );
 alter table dossiers enable row level security;
 create policy "Authenticated can manage dossiers" on dossiers for all to authenticated using (true) with check (true);

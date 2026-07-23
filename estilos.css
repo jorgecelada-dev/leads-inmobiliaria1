@@ -1184,6 +1184,57 @@ h1, h2, h3 {
 .seguimiento-estado-sold { background-color: #E5E7EB; color: #374151; }
 .seguimiento-estado-withdrawn { background-color: #FEE2E2; color: #B3261E; }
 
+/* Checklist de estado (Dossier / Vídeos / E-mail) al pie de cada tarjeta de
+   Seguimiento — tira a todo el ancho, pegada a las esquinas inferiores de
+   la tarjeta gracias a los márgenes negativos. */
+.seguimiento-checklist {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 14px -16px -16px;
+  padding: 10px 16px;
+  border-top: 1px solid #EFE9E2;
+  background-color: #FAF8F5;
+  border-radius: 0 0 6px 6px;
+}
+
+.seguimiento-check-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #857671;
+}
+
+.seguimiento-check-clicable {
+  cursor: pointer;
+}
+
+.seguimiento-check-icono {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  border: 1.5px solid #C9BEB8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  line-height: 1;
+  color: transparent;
+  background-color: #FFFFFF;
+}
+
+.seguimiento-check-icono.seguimiento-check-si {
+  background-color: #1D7A4C;
+  border-color: #1D7A4C;
+  color: #FFFFFF;
+}
+
 .seguimiento-detalle {
   background-color: #FFFFFF;
   border-radius: 6px;
