@@ -1699,16 +1699,16 @@ const ETIQUETAS_ESTADO_VENTA = {
 // añadir o quitar una pestaña en el futuro sea un solo cambio en un sitio.
 const TABS_INMUEBLES = [
   {
-    nombre: 'dossiers',
-    boton: document.querySelector('.inmuebles-tab[data-tab="dossiers"]'),
-    panel: document.getElementById('tab-dossiers'),
-    navLink: document.getElementById('nav-link-dossiers'),
-  },
-  {
     nombre: 'seguimiento',
     boton: document.querySelector('.inmuebles-tab[data-tab="seguimiento"]'),
     panel: document.getElementById('tab-seguimiento'),
     navLink: document.getElementById('nav-link-seguimiento'),
+  },
+  {
+    nombre: 'dossiers',
+    boton: document.querySelector('.inmuebles-tab[data-tab="dossiers"]'),
+    panel: document.getElementById('tab-dossiers'),
+    navLink: document.getElementById('nav-link-dossiers'),
   },
   {
     nombre: 'videos',
