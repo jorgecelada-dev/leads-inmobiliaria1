@@ -193,7 +193,6 @@ const cancelarEditorBtn = document.getElementById('cancelar-editor-btn');
 const eliminarDossierBtn = document.getElementById('eliminar-dossier-btn');
 const generarPdfBtn = document.getElementById('generar-pdf-btn');
 const verPdfLink = document.getElementById('ver-pdf-link');
-const pdfVersionesLista = document.getElementById('pdf-versiones-lista');
 const preview = document.getElementById('dossier-preview');
 const dossierPreviewEditando = document.getElementById('dossier-preview-editando');
 const dossierPreviewAcciones = document.getElementById('dossier-preview-acciones');
@@ -848,7 +847,6 @@ function abrirEditor(dossier) {
     verPdfLink.href = dossier.pdf_url;
     verPdfLink.hidden = false;
   }
-  renderVersionesPdf(dossier?.pdf_versions || []);
 
   eliminarDossierBtn.hidden = !dossier;
 
@@ -875,7 +873,7 @@ function extraerRutaStorage(url) {
 // Borrado en bloque de archivos en Storage. Es "best effort": si falla, no
 // bloquea el borrado del dossier en sí, solo se queda algún archivo huérfano.
 async function borrarArchivosStorage(rutas) {
-  const rutasValidas = rutas.filter(Boolean);
+  const rutasValidas = [...new Set(rutas.filter(Boolean))];
   if (rutasValidas.length === 0) return;
   try {
     await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}`, {
@@ -904,6 +902,21 @@ async function eliminarDossier(dossier) {
   }
 
   try {
+    // Los documentos (dossier_documents) se borran en cascada en la base de
+    // datos al borrar el dossier, así que hay que leer sus file_url ANTES de
+    // borrar — si no, ya no habría fila desde la que recuperarlos y sus
+    // archivos se quedarían huérfanos en Storage para siempre.
+    let documentos = [];
+    try {
+      const respuestaDocs = await fetch(
+        `${SUPABASE_URL}/rest/v1/dossier_documents?dossier_id=eq.${dossier.id}&select=file_url`,
+        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${getToken()}` } }
+      );
+      if (respuestaDocs.ok) documentos = await respuestaDocs.json();
+    } catch (error) {
+      console.warn('No se pudieron leer los documentos del dossier antes de borrarlo:', error);
+    }
+
     const respuesta = await fetch(`${SUPABASE_URL}/rest/v1/dossiers?id=eq.${dossier.id}`, {
       method: 'DELETE',
       headers: {
@@ -918,8 +931,11 @@ async function eliminarDossier(dossier) {
       extraerRutaStorage(dossier.cover_image_url),
       extraerRutaStorage(dossier.floor_plan_url),
       extraerRutaStorage(dossier.pdf_url),
+      extraerRutaStorage(dossier.video_url),
       ...(dossier.gallery || []).map((foto) => extraerRutaStorage(foto.url)),
       ...(dossier.pdf_versions || []).map((v) => extraerRutaStorage(v.url)),
+      ...(dossier.video_versions || []).map((v) => extraerRutaStorage(v.url)),
+      ...documentos.map((doc) => extraerRutaStorage(doc.file_url)),
     ]);
 
     if (dossierActualId === dossier.id) {
@@ -1075,6 +1091,13 @@ dossierForm.addEventListener('submit', async (evento) => {
       legal_status: document.getElementById('d-legal-status').value || null,
     };
 
+    // Fotos que tenía el dossier ANTES de este guardado — para saber, después
+    // de guardar, cuáles se han sustituido o quitado y borrarlas de Storage
+    // (si no, el archivo viejo se queda huérfano ocupando espacio para siempre).
+    const coverAnteriorUrl = dossierActual?.cover_image_url || null;
+    const floorplanAnteriorUrl = dossierActual?.floor_plan_url || null;
+    const galeriaAnterior = dossierActual?.gallery || [];
+
     // Portada: archivo nuevo > la que ya había (si no se quitó) > ninguna
     datos.cover_image_url = inputCover.files[0]
       ? await subirImagen(inputCover.files[0], 'portadas', true)
@@ -1139,6 +1162,19 @@ dossierForm.addEventListener('submit', async (evento) => {
       }
       [dossierGuardado] = filas;
       dossierActualId = dossierGuardado.id;
+    }
+
+    // Ahora que se ha guardado bien, borrar de Storage la portada/plano
+    // reemplazados y las fotos de galería quitadas — nada de lo eliminado en
+    // la web debe quedar ocupando espacio en Storage.
+    const urlsGaleriaNueva = new Set(fotosGaleria.map((foto) => foto.url));
+    const rutasABorrar = [
+      coverAnteriorUrl && coverAnteriorUrl !== datos.cover_image_url ? extraerRutaStorage(coverAnteriorUrl) : null,
+      floorplanAnteriorUrl && floorplanAnteriorUrl !== datos.floor_plan_url ? extraerRutaStorage(floorplanAnteriorUrl) : null,
+      ...galeriaAnterior.filter((foto) => !urlsGaleriaNueva.has(foto.url)).map((foto) => extraerRutaStorage(foto.url)),
+    ];
+    if (rutasABorrar.some(Boolean)) {
+      await borrarArchivosStorage(rutasABorrar);
     }
 
     dossierActual = dossierGuardado;
@@ -1518,29 +1554,179 @@ function renderPreview() {
   ajustarEncuadreFotos();
 }
 
-// Recorte inteligente de la GALERÍA: por defecto las fotos se recortan
-// centradas y ligeramente hacia arriba (para no cortar tejados/fachadas),
-// pero si la proporción de la foto es muy distinta a la del hueco (el doble
-// o más en cualquier sentido), se ajusta completa sin recortar en vez de
-// perder contenido importante de la imagen.
 function ajustarEncuadreFotos() {
-  const imgs = preview.querySelectorAll('.pdf-galeria img');
-  imgs.forEach((img) => {
-    const ajustar = () => {
-      if (!img.naturalWidth || !img.naturalHeight) return;
-      const marco = img.parentElement.getBoundingClientRect();
-      if (!marco.width || !marco.height) return;
-      const ratioImagen = img.naturalWidth / img.naturalHeight;
-      const ratioMarco = marco.width / marco.height;
-      if (ratioImagen / ratioMarco > 2 || ratioMarco / ratioImagen > 2) {
-        img.classList.add('pdf-foto-contain');
+  maquetarGaleria();
+  ajustarMarcoPortada();
+}
+
+// Coloca una imagen DENTRO de una celda de tamaño ya fijado (boxW x boxH)
+// sin depender de "object-fit" (html2canvas lo ignora al exportar el PDF,
+// aunque el navegador sí lo respeta en la vista previa — por eso aquí se
+// calcula a mano el tamaño y la posición reales de la imagen en píxeles).
+// modo "contain": se ve la foto completa, puede dejar franjas del fondo.
+// modo "cover": rellena la celda entera, puede recortar algo de la foto.
+function encajarImagenManual(img, boxW, boxH, ratioImg, modo) {
+  const ratioBox = boxW / boxH;
+  let w;
+  let h;
+  const imagenEsMasAnchaQueElHueco = ratioImg > ratioBox;
+  const ajustarPorAncho = modo === 'contain' ? imagenEsMasAnchaQueElHueco : !imagenEsMasAnchaQueElHueco;
+  if (ajustarPorAncho) {
+    w = boxW;
+    h = boxW / ratioImg;
+  } else {
+    h = boxH;
+    w = boxH * ratioImg;
+  }
+  img.style.position = 'absolute';
+  img.style.width = `${w}px`;
+  img.style.height = `${h}px`;
+  img.style.left = `${(boxW - w) / 2}px`;
+  img.style.top = `${(boxH - h) / 2}px`;
+  img.style.objectFit = '';
+}
+
+// Reglas de la GALERÍA (a petición expresa, sustituye al reparto "justified"
+// anterior): las fotos HORIZONTALES van siempre solas, a todo el ancho
+// disponible (nunca comparten fila con otra foto); las VERTICALES se
+// emparejan de 2 en 2 en la misma fila, EN EL ORDEN en que están en la
+// galería (una horizontal en medio corta el emparejamiento en curso). Si
+// queda una vertical suelta sin pareja, ocupa también toda la fila ella
+// sola. Dinámico: se recalcula según la mezcla real de fotos de cada
+// dossier, sea cual sea.
+function maquetarGaleria() {
+  const contenedor = preview.querySelector('.pdf-galeria');
+  if (!contenedor) return;
+
+  const GAP = 10;
+  // Fila de foto(s) horizontal(es) o de vertical suelta, a todo el ancho.
+  const ALTO_MIN_FILA_COMPLETA = 160;
+  const ALTO_MAX_FILA_COMPLETA = 420;
+  // Fila de 2 verticales emparejadas.
+  const ALTO_MIN_PAREJA = 220;
+  const ALTO_MAX_PAREJA = 420;
+
+  contenedor.style.display = 'flex';
+  contenedor.style.flexWrap = 'wrap';
+  contenedor.style.gap = `${GAP}px`;
+
+  const celdas = Array.from(contenedor.children).filter(
+    (el) => el.tagName === 'FIGURE' || el.classList.contains('pdf-galeria-mas')
+  );
+  if (!celdas.length) return;
+
+  const maquetar = () => {
+    const ancho = contenedor.getBoundingClientRect().width;
+    if (!ancho) return;
+
+    const ratios = celdas.map((celda) => {
+      const img = celda.querySelector('img');
+      if (img && img.naturalWidth && img.naturalHeight) return img.naturalWidth / img.naturalHeight;
+      return 1.4; // celda "+N fotos más": sin imagen, se trata como horizontal
+    });
+    const esHorizontal = (indice) => ratios[indice] >= 1;
+
+    // Coloca una celda a todo el ancho del contenedor. Si su proporción
+    // natural no cabe entre los límites de alto, se recorta o se deja con
+    // franjas (a mano, sin "object-fit") para no deformarla nunca.
+    const colocarFilaCompleta = (indice) => {
+      const celda = celdas[indice];
+      const ratio = ratios[indice];
+      const altoNatural = ancho / ratio;
+      const alto = Math.min(Math.max(altoNatural, ALTO_MIN_FILA_COMPLETA), ALTO_MAX_FILA_COMPLETA);
+      celda.style.width = `${ancho}px`;
+      celda.style.height = `${Math.round(alto)}px`;
+      celda.style.flex = 'none';
+      celda.style.overflow = 'hidden';
+      celda.style.position = 'relative';
+      const img = celda.querySelector('img');
+      if (img) {
+        if (Math.abs(alto - altoNatural) > 1) {
+          encajarImagenManual(img, ancho, alto, ratio, 'cover');
+        } else {
+          img.style.position = '';
+          img.style.left = '';
+          img.style.top = '';
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = '';
+        }
+        img.style.display = 'block';
       }
     };
-    if (img.complete) ajustar();
-    else img.addEventListener('load', ajustar, { once: true });
-  });
 
-  ajustarMarcoPortada();
+    // Coloca dos verticales emparejadas en la misma fila: se reparte el
+    // alto para que, sumando sus dos anchos (según su proporción real a ese
+    // alto), ocupen el ancho completo del contenedor entre las dos.
+    const colocarParejaVertical = (indiceA, indiceB) => {
+      const ratioA = ratios[indiceA];
+      const ratioB = ratios[indiceB];
+      const altoNatural = (ancho - GAP) / (ratioA + ratioB);
+      const alto = Math.min(Math.max(altoNatural, ALTO_MIN_PAREJA), ALTO_MAX_PAREJA);
+      const recortada = Math.abs(alto - altoNatural) > 1;
+      // Si se recortó el alto, cada mitad reparte el ancho a partes iguales
+      // (en vez de seguir la proporción exacta, que ya no cuadraría con el
+      // ancho disponible) y se recorta la foto para rellenar su mitad.
+      const anchoA = recortada ? (ancho - GAP) / 2 : ratioA * alto;
+      const anchoB = recortada ? (ancho - GAP) / 2 : ratioB * alto;
+      [[indiceA, ratioA, anchoA], [indiceB, ratioB, anchoB]].forEach(([indice, ratio, anchoCelda]) => {
+        const celda = celdas[indice];
+        celda.style.width = `${Math.round(anchoCelda)}px`;
+        celda.style.height = `${Math.round(alto)}px`;
+        celda.style.flex = 'none';
+        celda.style.overflow = 'hidden';
+        celda.style.position = 'relative';
+        const img = celda.querySelector('img');
+        if (img) {
+          if (recortada) {
+            encajarImagenManual(img, anchoCelda, alto, ratio, 'cover');
+          } else {
+            img.style.position = '';
+            img.style.left = '';
+            img.style.top = '';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = '';
+          }
+          img.style.display = 'block';
+        }
+      });
+    };
+
+    let i = 0;
+    while (i < celdas.length) {
+      if (esHorizontal(i)) {
+        colocarFilaCompleta(i);
+        i += 1;
+      } else if (i + 1 < celdas.length && !esHorizontal(i + 1)) {
+        colocarParejaVertical(i, i + 1);
+        i += 2;
+      } else {
+        // Vertical suelta (sin otra vertical al lado en la secuencia): a
+        // petición expresa, ocupa también toda la fila ella sola.
+        colocarFilaCompleta(i);
+        i += 1;
+      }
+    }
+  };
+
+  const imgsPendientes = celdas
+    .map((celda) => celda.querySelector('img'))
+    .filter((img) => img && !img.complete);
+
+  if (!imgsPendientes.length) {
+    maquetar();
+    return;
+  }
+  let restantes = imgsPendientes.length;
+  imgsPendientes.forEach((img) => {
+    const listo = () => {
+      restantes -= 1;
+      if (restantes === 0) maquetar();
+    };
+    img.addEventListener('load', listo, { once: true });
+    img.addEventListener('error', listo, { once: true });
+  });
 }
 
 // La foto de PORTADA nunca se recorta ni se deforma: en vez de forzarla a
@@ -1561,13 +1747,46 @@ function ajustarMarcoPortada() {
     if (!img.naturalWidth || !img.naturalHeight) return;
     const ancho = marco.getBoundingClientRect().width;
     if (!ancho) return;
+    const ratioImagen = img.naturalWidth / img.naturalHeight;
     const altoIdeal = ancho * (img.naturalHeight / img.naturalWidth);
     const altoFinal = Math.min(Math.max(altoIdeal, ALTO_MINIMO), ALTO_MAXIMO);
     marco.style.height = `${altoFinal}px`;
-    // Si la proporción era tan extrema que hubo que recortar el alto a los
-    // límites, se deja "contain" para no perder ni deformar nada de la
-    // imagen (aparecerán franjas del fondo del marco a los lados/arriba).
-    img.classList.toggle('pdf-foto-contain', Math.abs(altoFinal - altoIdeal) > 1);
+
+    const esExtrema = Math.abs(altoFinal - altoIdeal) > 1;
+    img.classList.toggle('pdf-foto-contain', esExtrema);
+    if (esExtrema) {
+      // OJO: html2canvas (motor que captura el PDF) ignora "object-fit" al
+      // exportar — solo respeta width/height/top/left literales. Por eso
+      // aquí no confiamos en CSS "contain": calculamos a mano el tamaño y la
+      // posición centrada de la foto dentro del marco, igual que haría
+      // "contain", pero en píxeles reales para que también salga bien en el
+      // PDF exportado y no solo en la vista previa del navegador.
+      const ratioMarco = ancho / altoFinal;
+      let anchoFoto;
+      let altoFoto;
+      if (ratioImagen > ratioMarco) {
+        anchoFoto = ancho;
+        altoFoto = ancho / ratioImagen;
+      } else {
+        altoFoto = altoFinal;
+        anchoFoto = altoFinal * ratioImagen;
+      }
+      img.style.width = `${anchoFoto}px`;
+      img.style.height = `${altoFoto}px`;
+      img.style.left = `${(ancho - anchoFoto) / 2}px`;
+      img.style.top = `${(altoFinal - altoFoto) / 2}px`;
+      img.style.right = 'auto';
+      img.style.bottom = 'auto';
+    } else {
+      // Foto normal (sin recorte de límites): vuelve a ocupar el marco
+      // entero por si veníamos de un ajuste "contain" anterior.
+      img.style.width = '';
+      img.style.height = '';
+      img.style.left = '';
+      img.style.top = '';
+      img.style.right = '';
+      img.style.bottom = '';
+    }
   };
   if (img.complete) ajustar();
   else img.addEventListener('load', ajustar, { once: true });
@@ -1575,18 +1794,6 @@ function ajustarMarcoPortada() {
 
 // Vuelve a pintar la vista previa en vivo mientras se rellena el formulario
 dossierForm.addEventListener('input', renderPreview);
-
-// Muestra el historial de PDFs generados (v1, v2, ...) de más reciente a más antiguo
-function renderVersionesPdf(versiones) {
-  if (!versiones || versiones.length === 0) {
-    pdfVersionesLista.innerHTML = '';
-    return;
-  }
-  pdfVersionesLista.innerHTML = [...versiones]
-    .reverse()
-    .map((v) => `<a href="${v.url}" target="_blank" rel="noopener">v${v.version}</a>`)
-    .join('');
-}
 
 // --- Generar PDF a partir de la vista previa y subirlo a Storage ---
 generarPdfBtn.addEventListener('click', async () => {
@@ -1662,11 +1869,14 @@ generarPdfBtn.addEventListener('click', async () => {
 
     const pdfBlob = await worker.outputPdf('blob');
 
-    // Cada generación se guarda como una versión nueva (v1, v2, ...) en vez
-    // de sobrescribir el archivo anterior, para poder ver el historial.
-    const versionesExistentes = Array.isArray(dossierActual.pdf_versions) ? dossierActual.pdf_versions : [];
-    const numeroVersion = versionesExistentes.length + 1;
-    const nombreArchivo = `pdfs/${dossierActualId}-v${numeroVersion}.pdf`;
+    // El PDF se sobrescribe siempre en la misma ruta — un dossier tiene un
+    // único PDF vigente, nunca se acumulan v1, v2, v3...
+    const nombreArchivo = `pdfs/${dossierActualId}.pdf`;
+
+    // Si el dossier venía de antes de este cambio con un historial de
+    // versiones antiguas, se borran ahora de Storage (no hace falta
+    // guardarlas) y se limpia el campo en la misma generación.
+    const versionesAntiguas = dossierActual.pdf_versions || [];
 
     const respuestaSubida = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${nombreArchivo}`, {
       method: 'POST',
@@ -1681,10 +1891,11 @@ generarPdfBtn.addEventListener('click', async () => {
     if (!respuestaSubida.ok) throw new Error(`Error ${respuestaSubida.status}`);
 
     const pdfUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${nombreArchivo}`;
-    const nuevasVersiones = [
-      ...versionesExistentes,
-      { version: numeroVersion, url: pdfUrl, created_at: new Date().toISOString() },
-    ];
+    // Como la URL ya no cambia entre generaciones, se añade un parámetro
+    // que sí cambia (la fecha) para que el enlace "Ver PDF" siempre abra
+    // el contenido recién generado y no una copia en caché del navegador.
+    const pdfUrlSinCache = `${pdfUrl}?t=${Date.now()}`;
+
     const respuestaPatch = await fetch(`${SUPABASE_URL}/rest/v1/dossiers?id=eq.${dossierActualId}`, {
       method: 'PATCH',
       headers: {
@@ -1693,15 +1904,18 @@ generarPdfBtn.addEventListener('click', async () => {
         'Authorization': `Bearer ${getToken()}`,
         'Prefer': 'return=minimal',
       },
-      body: JSON.stringify({ pdf_url: pdfUrl, pdf_versions: nuevasVersiones }),
+      body: JSON.stringify({ pdf_url: pdfUrlSinCache, pdf_versions: [] }),
     });
     if (!respuestaPatch.ok) throw new Error(`Error ${respuestaPatch.status}`);
 
-    dossierActual.pdf_url = pdfUrl;
-    dossierActual.pdf_versions = nuevasVersiones;
-    verPdfLink.href = pdfUrl;
+    if (versionesAntiguas.length) {
+      await borrarArchivosStorage(versionesAntiguas.map((v) => extraerRutaStorage(v.url)));
+    }
+
+    dossierActual.pdf_url = pdfUrlSinCache;
+    dossierActual.pdf_versions = [];
+    verPdfLink.href = pdfUrlSinCache;
     verPdfLink.hidden = false;
-    renderVersionesPdf(nuevasVersiones);
     dossierFormStatus.textContent = 'PDF generado correctamente.';
     dossierFormStatus.className = 'form-status ok';
     cargarDossiers();
@@ -1749,8 +1963,11 @@ const TABS_INMUEBLES = [
     navLink: document.getElementById('nav-link-videos'),
   },
 ];
-let seguimientoCargado = false;
-
+// Cada pestaña se refresca siempre al entrar en ella (no solo la primera
+// vez): crear o editar un inmueble en una pestaña podía dejar las otras con
+// datos desactualizados (p. ej. "0 dossier(s)" en Dossiers después de dar de
+// alta un inmueble desde Seguimiento), lo que hacía parecer que "Editar
+// dossier" no encajaba con lo que había en la lista.
 function cambiarTab(nombre) {
   TABS_INMUEBLES.forEach((tab) => {
     const activa = tab.nombre === nombre;
@@ -1758,10 +1975,9 @@ function cambiarTab(nombre) {
     tab.boton.classList.toggle('inmuebles-tab-activa', activa);
     if (tab.navLink) tab.navLink.classList.toggle('nav-link-activo', activa);
   });
-  if (nombre === 'seguimiento' && !seguimientoCargado) {
-    seguimientoCargado = true;
-    cargarSeguimiento();
-  }
+  if (nombre === 'seguimiento') cargarSeguimiento();
+  if (nombre === 'dossiers') cargarDossiers();
+  if (nombre === 'videos') cargarInmueblesParaVideo();
 }
 TABS_INMUEBLES.forEach((tab) => tab.boton.addEventListener('click', () => cambiarTab(tab.nombre)));
 
@@ -1902,9 +2118,13 @@ seguimientoEditarDossierBtn.addEventListener('click', () => {
   abrirEditor(dossierSeguimientoActual);
 });
 
-seguimientoVideoBtn.addEventListener('click', () => {
+seguimientoVideoBtn.addEventListener('click', async () => {
   if (!dossierSeguimientoActual) return;
   cambiarTab('videos');
+  // Se espera explícitamente el refresco del desplegable (cambiarTab ya lo
+  // dispara, pero en segundo plano): si el inmueble se creó en esta misma
+  // sesión, el desplegable aún podría no incluirlo si no se espera aquí.
+  await cargarInmueblesParaVideo();
   inmuebleSelect.value = dossierSeguimientoActual.id;
   inmuebleSelect.dispatchEvent(new Event('change'));
 });
@@ -2294,12 +2514,18 @@ async function cargarInmueblesParaVideo() {
     }
     if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
     dossiersParaVideo = await respuesta.json();
+
+    // Quita las opciones de una carga anterior (deja solo el placeholder
+    // "Sin inmueble") para poder refrescar sin duplicar el desplegable.
+    const valorPrevio = inmuebleSelect.value;
+    while (inmuebleSelect.options.length > 1) inmuebleSelect.remove(1);
     dossiersParaVideo.forEach((d) => {
       const opcion = document.createElement('option');
       opcion.value = d.id;
       opcion.textContent = d.title + (d.region ? ` — ${d.region}` : d.address ? ` — ${d.address}` : '');
       inmuebleSelect.appendChild(opcion);
     });
+    if (dossiersParaVideo.some((d) => d.id === valorPrevio)) inmuebleSelect.value = valorPrevio;
   } catch (error) {
     videoStatus.textContent = 'No se pudieron cargar los inmuebles: ' + error.message;
     videoStatus.className = 'form-status error';

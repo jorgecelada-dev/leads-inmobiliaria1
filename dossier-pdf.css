@@ -265,8 +265,13 @@
 }
 
 .dossier-pdf .pdf-portada-foto img.pdf-foto-contain {
+  /* El tamaño y la posición exactos (letterbox centrado) los calcula
+     ajustarMarcoPortada() en JS con width/height/top/left en px — html2canvas
+     (el motor que exporta el PDF) ignora "object-fit" al capturar, así que
+     no podemos confiar solo en esta propiedad para que salga bien en el
+     PDF, aunque la dejamos para que la vista previa en el navegador se
+     comporte igual mientras el JS termina de calcular. */
   object-fit: contain;
-  background-color: rgba(255,255,255,0.06);
 }
 
 .dossier-pdf .pdf-portada-foto-caption {
@@ -576,29 +581,32 @@
 
 /* --- Galería --- */
 .dossier-pdf .pdf-galeria {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
 .dossier-pdf .pdf-galeria figure {
+  /* Ancho y alto se fijan por JS (maquetarGaleria) según la proporción real
+     de cada foto — aquí solo van los valores de arranque antes de calcular,
+     para que no "salte" al cargar. */
   margin: 0;
   position: relative;
   break-inside: avoid;
   page-break-inside: avoid;
   background-color: var(--isabelina-suave);
+  overflow: hidden;
 }
 
 .dossier-pdf .pdf-galeria img {
   width: 100%;
-  height: 128px;
+  height: 100%;
+  /* object-fit:cover es solo un colchón por si el cálculo aún no se ha
+     aplicado: en cuanto maquetarGaleria() fija el tamaño de la figura a la
+     proporción exacta de la imagen, cover no llega a recortar nada. */
   object-fit: cover;
   display: block;
   border-radius: 3px;
-}
-
-.dossier-pdf .pdf-galeria img.pdf-foto-contain {
-  object-fit: contain;
 }
 
 .dossier-pdf .pdf-galeria figcaption {
@@ -612,7 +620,6 @@
 }
 
 .dossier-pdf .pdf-galeria-mas {
-  height: 128px;
   background-color: var(--espresso);
   color: rgba(255,255,255,0.72);
   display: flex;
@@ -656,6 +663,7 @@
   border-radius: 4px;
   padding: 15px 18px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
   page-break-inside: avoid;
@@ -680,7 +688,11 @@
 .dossier-pdf .pdf-contacto-info {
   flex: 1;
   color: #FFFFFF;
-  min-width: 0;
+  /* Ancho mínimo legible: si no cabe junto al avatar y al botón de
+     WhatsApp en columnas estrechas (vista previa en móvil), preferimos que
+     el botón baje a su propia línea (ver flex-wrap en .pdf-contacto-bar)
+     antes que dejar que este bloque se aplaste a 0 y el botón lo tape. */
+  min-width: 150px;
 }
 
 .dossier-pdf .pdf-contacto-info b {
@@ -709,6 +721,7 @@
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .dossier-pdf .pdf-contacto-datos {
