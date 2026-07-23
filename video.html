@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Vídeos promocionales — Invest Spain Properties</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body class="admin-body">
+
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <span class="logo">
+        <svg width="22" height="22" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M40 6 L74 40 L40 74 L6 40 Z" stroke="#EEF4F3" stroke-width="2"/>
+          <g fill="#EEF4F3">
+            <rect x="26" y="38" width="6" height="16" />
+            <rect x="37" y="28" width="6" height="26" />
+            <rect x="48" y="34" width="6" height="20" />
+          </g>
+        </svg>
+        Panel privado
+      </span>
+      <div class="topbar-nav">
+        <a href="admin.html" class="nav-link">Leads</a>
+        <a href="dossiers.html" class="nav-link">Mis inmuebles</a>
+        <a href="marketing.html" class="nav-link">Email-marketing</a>
+        <a href="video.html" class="nav-link nav-link-activo">Vídeos</a>
+        <button class="lang-toggle" id="logout-btn" type="button">Salir</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="admin-wrap">
+    <div class="admin-header">
+      <h1>Vídeos promocionales</h1>
+    </div>
+    <p class="marketing-nota">
+      Sube los clips de un inmueble, recorta cada uno, y genera un vídeo corto (35–40s) con música fija y
+      subtítulos — si eliges un inmueble de tus dossiers, los subtítulos se rellenan solos con sus datos.
+    </p>
+
+    <div class="video-editor">
+      <div class="campo">
+        <label for="v-inmueble">Elige el inmueble para este vídeo (opcional)</label>
+        <select id="v-inmueble">
+          <option value="">— Sin inmueble / rellenar a mano —</option>
+        </select>
+      </div>
+
+      <div class="campo-fila">
+        <div class="campo">
+          <label for="v-clips">Añadir clips de vídeo</label>
+          <input type="file" id="v-clips" accept="video/*" multiple>
+        </div>
+        <div class="campo">
+          <label for="v-musica">Música de fondo</label>
+          <input type="file" id="v-musica" accept="audio/*">
+          <p class="campo-ayuda" id="v-musica-nombre">Ninguna música seleccionada todavía.</p>
+        </div>
+      </div>
+
+      <div id="video-clips-vacio" class="mapa-vacio">Todavía no has añadido ningún clip.</div>
+      <div id="video-clips-lista" class="video-clips-lista"></div>
+
+      <div class="video-duracion-barra" id="video-duracion-barra" hidden>
+        <span>Duración total: <b id="v-duracion-total">0.0s</b></span>
+        <span class="video-duracion-objetivo-etiqueta">objetivo: 35–40s</span>
+      </div>
+
+      <div class="video-preview-zona">
+        <canvas id="video-canvas" width="720" height="1280"></canvas>
+        <video id="video-resultado" controls hidden></video>
+      </div>
+
+      <div class="dossier-editor-botones-principales">
+        <button type="button" class="btn-primary" id="generar-video-btn" disabled>Generar vídeo</button>
+        <a href="#" id="video-descarga-link" class="btn-secundario" download="video-promocional.webm" hidden>Descargar vídeo</a>
+      </div>
+      <p class="form-status" id="video-status"></p>
+    </div>
+  </div>
+
+  <script src="video.js" defer></script>
+</body>
+</html>

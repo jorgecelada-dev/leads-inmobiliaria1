@@ -1429,3 +1429,126 @@ h1, h2, h3 {
   background-color: #DCE7E5;
 }
 
+/* --- Editor de vídeos promocionales --- */
+.video-editor {
+  background-color: #FFFFFF;
+  border-radius: 6px;
+  padding: 28px;
+  box-shadow: 0 2px 12px rgba(78, 65, 59,0.06);
+  max-width: 720px;
+}
+
+.campo-ayuda {
+  font-size: 0.8rem;
+  color: #857671;
+  margin-top: 6px;
+}
+
+.video-clips-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.video-clip-tarjeta {
+  border: 1px solid #E3DED4;
+  border-radius: 6px;
+  padding: 16px;
+  background-color: #FAF8F4;
+}
+
+.video-clip-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.video-clip-numero {
+  font-family: 'Public Sans', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #4E413B;
+}
+
+.video-clip-nombre {
+  font-size: 0.8rem;
+  color: #857671;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-clip-orden {
+  display: flex;
+  gap: 6px;
+}
+
+.video-clip-mini-btn {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+}
+
+.video-duracion-barra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 6px;
+  background-color: #F6F3EE;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4E413B;
+  margin-bottom: 20px;
+}
+
+.video-duracion-ok {
+  background-color: #E4F3EA;
+  color: #1D7A4C;
+}
+
+.video-duracion-fuera {
+  background-color: #FBEAE8;
+  color: #B3261E;
+}
+
+.video-duracion-objetivo-etiqueta {
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.video-preview-zona {
+  display: flex;
+  justify-content: center;
+  background-color: #241C18;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+#video-canvas,
+#video-resultado {
+  max-width: 100%;
+  max-height: 480px;
+  border-radius: 4px;
+}
+
+.video-editor .dossier-editor-botones-principales {
+  display: flex;
+  gap: 12px;
+}
+
+.video-editor .dossier-editor-botones-principales .btn-primary,
+.video-editor .dossier-editor-botones-principales .btn-secundario {
+  flex: 1;
+  margin-top: 0;
+  padding: 14px 20px;
+  line-height: 1.6;
+  text-align: center;
+}
+
