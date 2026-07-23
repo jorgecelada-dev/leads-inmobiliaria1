@@ -6,6 +6,17 @@
 
 const SUPABASE_URL = "https://uagmlfssbixytierxdib.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_8FvlGTc8ICk04jqAH0yzzg_Q84Jp1UQ";
+const STORAGE_BUCKET = "dossiers";
+
+// Mismos datos de contacto y misma paleta (Espresso/Coral) que usa la
+// plantilla del PDF del dossier — así el vídeo y el PDF comparten
+// identidad visual como piezas de la misma marca.
+const CONTACTO_NOMBRE = "Jorge Celada";
+const CONTACTO_ROL = "Asesor de inversión inmobiliaria internacional";
+const CONTACTO_TELEFONO = "+34 682548468";
+const CONTACTO_EMAIL = "jorgeceladaa2@gmail.com";
+const COLOR_ESPRESSO = '#241C18';
+const COLOR_CORAL = '#FF6B45';
 
 function getToken() {
   return sessionStorage.getItem('admin-token');
@@ -17,7 +28,10 @@ if (!getToken()) {
 
 const inmuebleSelect = document.getElementById('v-inmueble');
 const clipsInput = document.getElementById('v-clips');
+const musicaBancoSelect = document.getElementById('v-musica-banco');
+const musicaSubirZona = document.getElementById('v-musica-subir-zona');
 const musicaInput = document.getElementById('v-musica');
+const musicaGuardarCheckbox = document.getElementById('v-musica-guardar');
 const musicaNombre = document.getElementById('v-musica-nombre');
 const clipsVacio = document.getElementById('video-clips-vacio');
 const clipsLista = document.getElementById('video-clips-lista');
@@ -30,6 +44,8 @@ const generarBtn = document.getElementById('generar-video-btn');
 const descargaLink = document.getElementById('video-descarga-link');
 const videoStatus = document.getElementById('video-status');
 const logoutBtn = document.getElementById('logout-btn');
+const repartirObjetivoInput = document.getElementById('v-repartir-objetivo');
+const repartirBtn = document.getElementById('v-repartir-btn');
 
 // Duración objetivo del vídeo final, en segundos (ver criterios del brief).
 const DURACION_OBJETIVO_MIN = 35;
@@ -135,10 +151,92 @@ inmuebleSelect.addEventListener('change', () => {
   if (dossier) repartirSubtitulos(dossier);
 });
 
-// --- Música fija ---
-musicaInput.addEventListener('change', () => {
-  musicaFile = musicaInput.files[0] || null;
-  musicaNombre.textContent = musicaFile ? `Seleccionada: ${musicaFile.name}` : 'Ninguna música seleccionada todavía.';
+// --- Banco de música: pistas ya subidas antes, guardadas en Supabase
+// Storage bajo el prefijo "musica/" del mismo bucket que usan los dossiers
+// (mismas políticas de acceso, no hace falta nada nuevo en Supabase). Así
+// no hay que volver a subir la misma canción cada vez — o si se prefiere,
+// se puede usar siempre la misma eligiéndola cada vez del banco.
+async function cargarBancoMusica() {
+  try {
+    const respuesta = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${STORAGE_BUCKET}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ prefix: 'musica', limit: 200, sortBy: { column: 'name', order: 'asc' } }),
+    });
+    if (!respuesta.ok) return;
+    const archivos = await respuesta.json();
+    musicaBancoSelect.querySelectorAll('option[data-banco]').forEach((o) => o.remove());
+    const opcionNueva = musicaBancoSelect.querySelector('option[value="__nueva__"]');
+    archivos
+      .filter((a) => a.name && a.id)
+      .forEach((archivo) => {
+        const opcion = document.createElement('option');
+        opcion.value = `${STORAGE_BUCKET}/musica/${archivo.name}`;
+        opcion.textContent = archivo.name;
+        opcion.dataset.banco = '1';
+        musicaBancoSelect.insertBefore(opcion, opcionNueva);
+      });
+  } catch (error) {
+    // El banco es un extra: si la lista falla, simplemente no aparece
+    // ninguna pista guardada, pero se puede seguir subiendo música nueva.
+  }
+}
+
+musicaBancoSelect.addEventListener('change', async () => {
+  const valor = musicaBancoSelect.value;
+  if (valor === '__nueva__') {
+    musicaSubirZona.hidden = false;
+    musicaFile = null;
+    musicaNombre.textContent = 'Elige un archivo de música para subir.';
+    return;
+  }
+  musicaSubirZona.hidden = true;
+  if (!valor) {
+    musicaFile = null;
+    musicaNombre.textContent = 'Ninguna música seleccionada todavía.';
+    return;
+  }
+  musicaNombre.textContent = 'Cargando música del banco…';
+  try {
+    const respuesta = await fetch(`${SUPABASE_URL}/storage/v1/object/public/${valor}`);
+    if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
+    const blob = await respuesta.blob();
+    musicaFile = new File([blob], valor.split('/').pop(), { type: blob.type || 'audio/mpeg' });
+    musicaNombre.textContent = `Seleccionada del banco: ${musicaFile.name}`;
+  } catch (error) {
+    musicaFile = null;
+    musicaNombre.textContent = 'No se pudo cargar esa música del banco: ' + error.message;
+  }
+});
+
+musicaInput.addEventListener('change', async () => {
+  const file = musicaInput.files[0];
+  if (!file) return;
+  musicaFile = file;
+  musicaNombre.textContent = `Seleccionada: ${file.name}`;
+
+  if (musicaGuardarCheckbox.checked) {
+    try {
+      const nombreArchivo = `musica/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+      await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${nombreArchivo}`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': file.type || 'audio/mpeg',
+        },
+        body: file,
+      });
+      musicaNombre.textContent = `Seleccionada: ${file.name} (guardada en el banco de música)`;
+      await cargarBancoMusica();
+    } catch (error) {
+      musicaNombre.textContent = `Seleccionada: ${file.name} (no se pudo guardar en el banco: ${error.message})`;
+    }
+  }
 });
 
 // --- Gestión de clips ---
@@ -186,8 +284,70 @@ function moverClip(id, direccion) {
 function eliminarClip(id) {
   const indice = clips.findIndex((c) => c.id === id);
   if (indice === -1) return;
-  URL.revokeObjectURL(clips[indice].url);
+  // Solo libera la URL si ningún otro tramo del mismo vídeo la sigue usando
+  // (varios clips pueden compartir el mismo archivo/URL, ver duplicarClip).
+  const urlEnUso = clips.some((c, i) => i !== indice && c.url === clips[indice].url);
+  if (!urlEnUso) URL.revokeObjectURL(clips[indice].url);
   clips.splice(indice, 1);
+  renderClips();
+}
+
+// Saca otro tramo del MISMO vídeo ya subido (mismo archivo/URL), colocado
+// justo después del original en la lista, empezando donde termina el
+// tramo anterior — así de un solo vídeo largo se pueden sacar varios
+// clips sin tener que volver a subir el archivo.
+function duplicarClip(id) {
+  const indice = clips.findIndex((c) => c.id === id);
+  if (indice === -1) return;
+  const original = clips[indice];
+  const inicioNuevo = Math.min(original.inicio + original.duracion, Math.max(original.duracionOriginal - DURACION_CLIP_MINIMA, 0));
+  const disponible = Math.max(original.duracionOriginal - inicioNuevo, DURACION_CLIP_MINIMA);
+  clips.splice(indice + 1, 0, {
+    id: siguienteIdClip++,
+    file: original.file,
+    url: original.url,
+    nombre: original.nombre,
+    duracionOriginal: original.duracionOriginal,
+    inicio: inicioNuevo,
+    duracion: Math.min(DURACION_CLIP_DEFECTO, disponible),
+    subtitulo: '',
+  });
+  renderClips();
+}
+
+// Reparte una duración total objetivo entre todos los clips SIN forzar que
+// todos duren lo mismo: a cada uno se le da como máximo el metraje que
+// realmente tiene disponible (duracionOriginal - inicio); lo que un clip
+// no puede aprovechar se reparte entre el resto ("water-filling"). Así,
+// con pocos clips (2-3) se puede llegar a 35-40s dándole más tiempo a los
+// que sí tienen metraje de sobra, sin tener que subir más vídeos.
+function repartirDuracion(objetivoTotal) {
+  if (clips.length === 0) return;
+  const disponibles = clips.map((c) => Math.max(c.duracionOriginal - c.inicio, DURACION_CLIP_MINIMA));
+  const asignadas = clips.map((c, i) => Math.min(DURACION_CLIP_MINIMA, disponibles[i]));
+  let restante = objetivoTotal - asignadas.reduce((suma, v) => suma + v, 0);
+  let activos = clips.map((_, i) => i).filter((i) => disponibles[i] > asignadas[i]);
+
+  let vueltasSeguridad = clips.length + 5;
+  while (restante > 0.01 && activos.length > 0 && vueltasSeguridad-- > 0) {
+    const porClip = restante / activos.length;
+    let sobrante = 0;
+    const siguientesActivos = [];
+    activos.forEach((i) => {
+      const espacio = disponibles[i] - asignadas[i];
+      if (porClip >= espacio) {
+        asignadas[i] += espacio;
+        sobrante += porClip - espacio;
+      } else {
+        asignadas[i] += porClip;
+        siguientesActivos.push(i);
+      }
+    });
+    restante = sobrante;
+    activos = siguientesActivos;
+  }
+
+  clips.forEach((c, i) => { c.duracion = Math.round(asignadas[i] * 10) / 10; });
   renderClips();
 }
 
@@ -234,6 +394,7 @@ function renderClips() {
         <label>Subtítulo de este clip</label>
         <textarea class="admin-notas video-clip-subtitulo" data-id="${clip.id}" rows="2" placeholder="Texto que aparecerá sobre este clip (opcional)">${escapeHtml(clip.subtitulo)}</textarea>
       </div>
+      <button type="button" class="btn-secundario video-clip-otro-tramo" data-accion="otro-tramo" data-id="${clip.id}">✂ Sacar otro tramo de este mismo vídeo</button>
     `;
     clipsLista.appendChild(tarjeta);
   });
@@ -248,6 +409,7 @@ clipsLista.addEventListener('click', (evento) => {
   if (boton.dataset.accion === 'subir') moverClip(id, -1);
   else if (boton.dataset.accion === 'bajar') moverClip(id, 1);
   else if (boton.dataset.accion === 'eliminar') eliminarClip(id);
+  else if (boton.dataset.accion === 'otro-tramo') duplicarClip(id);
 });
 
 clipsLista.addEventListener('input', (evento) => {
@@ -265,6 +427,11 @@ clipsLista.addEventListener('input', (evento) => {
   } else if (el.classList.contains('video-clip-subtitulo')) {
     clip.subtitulo = el.value;
   }
+});
+
+repartirBtn.addEventListener('click', () => {
+  const objetivo = Number(repartirObjetivoInput.value) || (DURACION_OBJETIVO_MIN + DURACION_OBJETIVO_MAX) / 2;
+  repartirDuracion(objetivo);
 });
 
 // --- Dibujo de un fotograma en el canvas: vídeo "cover" + fundido + subtítulo ---
@@ -373,6 +540,155 @@ function conTimeout(promesa, timeoutMs = 2000) {
   ]);
 }
 
+// --- Tarjetas de apertura y cierre (sobre fondo Espresso, con el logo) ---
+// Mismo rombo + skyline que el logo de la marca, dibujado en blanco.
+function dibujarLogoEnCanvas(cx, cy, tamano) {
+  const escala = tamano / 80;
+  ctx.save();
+  ctx.translate(cx - tamano / 2, cy - tamano / 2);
+  ctx.scale(escala, escala);
+  ctx.beginPath();
+  ctx.moveTo(40, 6); ctx.lineTo(74, 40); ctx.lineTo(40, 74); ctx.lineTo(6, 40); ctx.closePath();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.stroke();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(26, 38, 6, 16);
+  ctx.fillRect(37, 28, 6, 26);
+  ctx.fillRect(48, 34, 6, 20);
+  ctx.restore();
+}
+
+// Ajuste de línea sencillo (word-wrap) reutilizado por las tarjetas.
+function ajustarLineas(texto, anchoMaximo) {
+  const palabras = (texto || '').trim().split(/\s+/).filter(Boolean);
+  const lineas = [];
+  let actual = '';
+  palabras.forEach((palabra) => {
+    const prueba = actual ? `${actual} ${palabra}` : palabra;
+    if (ctx.measureText(prueba).width > anchoMaximo && actual) {
+      lineas.push(actual);
+      actual = palabra;
+    } else {
+      actual = prueba;
+    }
+  });
+  if (actual) lineas.push(actual);
+  return lineas;
+}
+
+// Calcula la opacidad del fundido a blanco al principio/final de una
+// tarjeta o clip — misma fórmula que dibujarFotograma, reutilizada aquí
+// para que la apertura/cierre tengan el mismo lenguaje visual.
+function calcularFundido(progreso, duracion) {
+  const fundido = Math.min(FUNDIDO_S, duracion / 2 - 0.02);
+  if (fundido <= 0) return 0;
+  if (progreso < fundido) return 1 - progreso / fundido;
+  if (progreso > duracion - fundido) return (progreso - (duracion - fundido)) / fundido;
+  return 0;
+}
+
+function dibujarTarjetaApertura(dossier, progreso, duracion) {
+  const anchoDestino = canvas.width;
+  const altoDestino = canvas.height;
+  const cx = anchoDestino / 2;
+  const opacidadBlanco = calcularFundido(progreso, duracion);
+
+  ctx.fillStyle = COLOR_ESPRESSO;
+  ctx.fillRect(0, 0, anchoDestino, altoDestino);
+
+  ctx.save();
+  ctx.globalAlpha = 1 - opacidadBlanco;
+  ctx.textAlign = 'center';
+
+  dibujarLogoEnCanvas(cx, 400, 90);
+
+  ctx.font = '700 22px "Public Sans", sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText('INVEST SPAIN PROPERTIES', cx, 510);
+
+  ctx.font = '700 26px "Public Sans", sans-serif';
+  ctx.fillStyle = COLOR_CORAL;
+  ctx.fillText('EN EXCLUSIVA', cx, 600);
+
+  let y = 680;
+  ctx.font = '600 56px "Fraunces", serif';
+  ctx.fillStyle = '#FFFFFF';
+  ajustarLineas(dossier.title, anchoDestino - 120).forEach((linea) => {
+    ctx.fillText(linea, cx, y);
+    y += 64;
+  });
+
+  const datos = [
+    dossier.region,
+    [dossier.bedrooms ? `${dossier.bedrooms} hab` : null, dossier.surface_m2 ? `${dossier.surface_m2} m²` : null].filter(Boolean).join(' · '),
+  ].filter(Boolean).join(' · ');
+  if (datos) {
+    y += 26;
+    ctx.font = '400 30px "Public Sans", sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ajustarLineas(datos, anchoDestino - 120).forEach((linea) => {
+      ctx.fillText(linea, cx, y);
+      y += 40;
+    });
+  }
+
+  if (dossier.price) {
+    ctx.font = '600 62px "Fraunces", serif';
+    ctx.fillStyle = COLOR_CORAL;
+    ctx.fillText(formatearPrecio(dossier.price), cx, y + 76);
+  }
+
+  ctx.restore();
+
+  if (opacidadBlanco > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${opacidadBlanco})`;
+    ctx.fillRect(0, 0, anchoDestino, altoDestino);
+  }
+}
+
+function dibujarTarjetaCierre(progreso, duracion) {
+  const anchoDestino = canvas.width;
+  const altoDestino = canvas.height;
+  const cx = anchoDestino / 2;
+  const opacidadBlanco = calcularFundido(progreso, duracion);
+
+  ctx.fillStyle = COLOR_ESPRESSO;
+  ctx.fillRect(0, 0, anchoDestino, altoDestino);
+
+  ctx.save();
+  ctx.globalAlpha = 1 - opacidadBlanco;
+  ctx.textAlign = 'center';
+
+  dibujarLogoEnCanvas(cx, 420, 100);
+
+  ctx.font = '700 28px "Public Sans", sans-serif';
+  ctx.fillStyle = COLOR_CORAL;
+  ctx.fillText('CONTÁCTANOS', cx, 560);
+
+  ctx.font = '600 46px "Fraunces", serif';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillText(CONTACTO_NOMBRE, cx, 650);
+
+  ctx.font = '400 24px "Public Sans", sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ajustarLineas(CONTACTO_ROL, anchoDestino - 120).forEach((linea, i) => {
+    ctx.fillText(linea, cx, 695 + i * 32);
+  });
+
+  ctx.font = '600 30px "Public Sans", sans-serif';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillText(CONTACTO_TELEFONO, cx, 800);
+  ctx.fillText(CONTACTO_EMAIL, cx, 848);
+
+  ctx.restore();
+
+  if (opacidadBlanco > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${opacidadBlanco})`;
+    ctx.fillRect(0, 0, anchoDestino, altoDestino);
+  }
+}
+
 // --- Generación del vídeo final (Canvas + MediaRecorder) ---
 generarBtn.addEventListener('click', async () => {
   if (clips.length === 0) return;
@@ -385,6 +701,19 @@ generarBtn.addEventListener('click', async () => {
 
   let audioContext;
   try {
+    // Las tarjetas de apertura/cierre usan Fraunces — nos aseguramos de que
+    // la fuente ya esté cargada antes de dibujar el primer fotograma, si
+    // no el texto saldría con la fuente de reserva durante un instante.
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+    const dossierSeleccionado = dossiersDisponibles.find((d) => d.id === inmuebleSelect.value);
+    const DURACION_APERTURA = 3.5;
+    const DURACION_CIERRE = 3;
+    const secuencia = [];
+    if (dossierSeleccionado) secuencia.push({ tipo: 'apertura', duracion: DURACION_APERTURA, dossier: dossierSeleccionado });
+    clips.forEach((clip) => secuencia.push({ tipo: 'clip', clip }));
+    if (dossierSeleccionado) secuencia.push({ tipo: 'cierre', duracion: DURACION_CIERRE });
+
     const canvasStream = canvas.captureStream(30);
 
     let pistaAudio = null;
@@ -417,7 +746,29 @@ generarBtn.addEventListener('click', async () => {
     recorder.start();
     if (elementoMusica) elementoMusica.play().catch(() => {});
 
-    for (const clip of clips) {
+    for (const item of secuencia) {
+      if (item.tipo !== 'clip') {
+        // Tarjeta estática (apertura/cierre): no hay vídeo que reproducir,
+        // solo se dibuja el mismo fotograma con el fundido correspondiente
+        // durante su duración.
+        const inicioTarjetaMs = performance.now();
+        const dibujarTarjeta = item.tipo === 'apertura'
+          ? (progreso) => dibujarTarjetaApertura(item.dossier, progreso, item.duracion)
+          : (progreso) => dibujarTarjetaCierre(progreso, item.duracion);
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolveTarjeta) => {
+          function dibujarSiguiente() {
+            const progreso = (performance.now() - inicioTarjetaMs) / 1000;
+            if (progreso >= item.duracion) { resolveTarjeta(); return; }
+            dibujarTarjeta(progreso);
+            requestAnimationFrame(dibujarSiguiente);
+          }
+          dibujarSiguiente();
+        });
+        continue;
+      }
+
+      const clip = item.clip;
       const elementoVideo = document.createElement('video');
       elementoVideo.muted = true;
       elementoVideo.playsInline = true;
@@ -473,4 +824,5 @@ logoutBtn.addEventListener('click', () => {
 });
 
 cargarInmuebles();
+cargarBancoMusica();
 renderClips();

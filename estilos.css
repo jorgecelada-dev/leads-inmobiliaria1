@@ -1495,8 +1495,10 @@ h1, h2, h3 {
 
 .video-duracion-barra {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   padding: 10px 16px;
   border-radius: 6px;
   background-color: #F6F3EE;
@@ -1504,6 +1506,27 @@ h1, h2, h3 {
   font-weight: 600;
   color: #4E413B;
   margin-bottom: 20px;
+}
+
+.video-duracion-repartir {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.video-duracion-repartir input {
+  width: 64px;
+  padding: 5px 6px;
+  border: 1px solid #C9BEB8;
+  border-radius: 4px;
+  font-family: 'Public Sans', sans-serif;
+  font-size: 0.78rem;
+}
+
+.video-clip-otro-tramo {
+  margin-top: 12px;
+  font-size: 0.78rem;
+  padding: 6px 12px;
 }
 
 .video-duracion-ok {
