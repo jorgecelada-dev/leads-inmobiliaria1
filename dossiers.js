@@ -1225,11 +1225,13 @@ function renderPreview() {
     precioM2Valor = `${comparativa.precioM2.toFixed(0)} €/m²`;
     if (comparativa.mediaM2) {
       const diferencia = ((comparativa.precioM2 - comparativa.mediaM2) / comparativa.mediaM2) * 100;
+      const zonaEtiqueta = comparativa.esReferenciaExterna ? comparativa.etiquetaReferencia : zona;
+      const prefijo = comparativa.esReferenciaExterna ? 'media de referencia en' : 'media de';
       precioM2Caption = diferencia > 5
-        ? `↑ ${diferencia.toFixed(0)}% vs. media de "${escapeHtml(zona)}"`
+        ? `↑ ${diferencia.toFixed(0)}% vs. ${prefijo} "${escapeHtml(zonaEtiqueta)}"`
         : diferencia < -5
-          ? `↓ ${Math.abs(diferencia).toFixed(0)}% vs. media de "${escapeHtml(zona)}"`
-          : `En línea con la media de "${escapeHtml(zona)}"`;
+          ? `↓ ${Math.abs(diferencia).toFixed(0)}% vs. ${prefijo} "${escapeHtml(zonaEtiqueta)}"`
+          : `En línea con la ${prefijo} "${escapeHtml(zonaEtiqueta)}"`;
     } else {
       precioM2Caption = `Sin otros inmuebles en "${escapeHtml(zona)}" para comparar todavía`;
     }
@@ -1930,9 +1932,23 @@ segEstado.addEventListener('change', async () => {
   }
 });
 
-// --- Comparativa de precio/m² frente a otros dossiers de la misma zona ---
-// (solo datos internos — nunca de fuentes externas). La usan tanto la vista
-// previa del dossier principal como la pestaña de Seguimiento.
+// Precio medio de referencia (€/m²) para zonas donde todavía no tengamos
+// dossiers propios con los que comparar. Es solo un punto de partida
+// aproximado de mercado — en cuanto haya dossiers reales en esa zona, la
+// comparativa usa esos datos en vez de esta referencia.
+const PRECIOS_REFERENCIA_ZONA = [
+  { patron: /madrid/i, precioM2: 10500, etiqueta: 'Madrid' },
+];
+
+function buscarPrecioReferenciaZona(region) {
+  if (!region) return null;
+  return PRECIOS_REFERENCIA_ZONA.find((ref) => ref.patron.test(region)) || null;
+}
+
+// --- Comparativa de precio/m² frente a otros dossiers de la misma zona,
+// con un precio de referencia de mercado como respaldo si todavía no hay
+// otros dossiers propios en esa zona con los que comparar. La usan tanto
+// la vista previa del dossier principal como la pestaña de Seguimiento.
 function compararPrecioM2(idActual, region, price, surfaceM2) {
   if (!price || !surfaceM2) return null;
   const precioM2 = price / surfaceM2;
@@ -1943,9 +1959,21 @@ function compararPrecioM2(idActual, region, price, surfaceM2) {
     d.region.trim().toLowerCase() === region.trim().toLowerCase() &&
     d.price && d.surface_m2,
   );
-  if (comparables.length === 0) return { precioM2, mediaM2: null, comparables: 0 };
-  const mediaM2 = comparables.reduce((suma, d) => suma + d.price / d.surface_m2, 0) / comparables.length;
-  return { precioM2, mediaM2, comparables: comparables.length };
+  if (comparables.length > 0) {
+    const mediaM2 = comparables.reduce((suma, d) => suma + d.price / d.surface_m2, 0) / comparables.length;
+    return { precioM2, mediaM2, comparables: comparables.length, esReferenciaExterna: false };
+  }
+  const referencia = buscarPrecioReferenciaZona(region);
+  if (referencia) {
+    return {
+      precioM2,
+      mediaM2: referencia.precioM2,
+      comparables: 0,
+      esReferenciaExterna: true,
+      etiquetaReferencia: referencia.etiqueta,
+    };
+  }
+  return { precioM2, mediaM2: null, comparables: 0, esReferenciaExterna: false };
 }
 
 function renderComparativa(dossier) {
@@ -1967,9 +1995,13 @@ function renderComparativa(dossier) {
       ? `un ${Math.abs(diferencia).toFixed(0)}% por debajo de la media`
       : 'en línea con la media';
 
+  const etiquetaMedia = resultado.esReferenciaExterna
+    ? `Precio medio de referencia en ${escapeHtml(resultado.etiquetaReferencia)}`
+    : `Media en "${escapeHtml(dossier.region)}" (${resultado.comparables} inmueble(s))`;
+
   seguimientoComparativa.innerHTML = `
     <b>${resultado.precioM2.toFixed(0)} €/m²</b> este inmueble.
-    Media en "${escapeHtml(dossier.region)}" (${resultado.comparables} inmueble(s)): <b>${resultado.mediaM2.toFixed(0)} €/m²</b>.
+    ${etiquetaMedia}: <b>${resultado.mediaM2.toFixed(0)} €/m²</b>.
     Está ${texto}.
   `;
 }
