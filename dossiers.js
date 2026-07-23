@@ -1952,6 +1952,23 @@ function buscarPrecioReferenciaZona(region) {
 function compararPrecioM2(idActual, region, price, surfaceM2) {
   if (!price || !surfaceM2) return null;
   const precioM2 = price / surfaceM2;
+
+  // Si hay un precio de mercado de referencia para la zona (ej. Madrid),
+  // se usa siempre ese — comparar contra 1-2 dossiers propios no es una
+  // muestra representativa del mercado real y da porcentajes engañosos
+  // (un piso a precio de mercado puede salir "un 150% por encima" solo
+  // porque el otro dossier guardado era mucho más barato).
+  const referencia = buscarPrecioReferenciaZona(region);
+  if (referencia) {
+    return {
+      precioM2,
+      mediaM2: referencia.precioM2,
+      comparables: 0,
+      esReferenciaExterna: true,
+      etiquetaReferencia: referencia.etiqueta,
+    };
+  }
+
   const comparables = todosLosDossiers.filter((d) =>
     d.id !== idActual &&
     d.region &&
@@ -1962,16 +1979,6 @@ function compararPrecioM2(idActual, region, price, surfaceM2) {
   if (comparables.length > 0) {
     const mediaM2 = comparables.reduce((suma, d) => suma + d.price / d.surface_m2, 0) / comparables.length;
     return { precioM2, mediaM2, comparables: comparables.length, esReferenciaExterna: false };
-  }
-  const referencia = buscarPrecioReferenciaZona(region);
-  if (referencia) {
-    return {
-      precioM2,
-      mediaM2: referencia.precioM2,
-      comparables: 0,
-      esReferenciaExterna: true,
-      etiquetaReferencia: referencia.etiqueta,
-    };
   }
   return { precioM2, mediaM2: null, comparables: 0, esReferenciaExterna: false };
 }
