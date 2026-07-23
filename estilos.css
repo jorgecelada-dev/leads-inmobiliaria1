@@ -1194,6 +1194,13 @@ h1, h2, h3 {
   color: #4E413B;
 }
 
+.seguimiento-accesos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
 .seguimiento-comparativa {
   background-color: #EEF4F3;
   border-radius: 6px;

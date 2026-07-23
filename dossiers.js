@@ -1750,6 +1750,8 @@ const segDocNombre = document.getElementById('seg-doc-nombre');
 const segDocArchivo = document.getElementById('seg-doc-archivo');
 const subirDocumentoBtn = document.getElementById('subir-documento-btn');
 const seguimientoDocumentos = document.getElementById('seguimiento-documentos');
+const seguimientoEditarDossierBtn = document.getElementById('seguimiento-editar-dossier-btn');
+const seguimientoVideoBtn = document.getElementById('seguimiento-video-btn');
 
 let todosLosDossiers = []; // caché para calcular la comparativa de precios
 let dossierSeguimientoActual = null;
@@ -1851,9 +1853,29 @@ async function abrirSeguimientoDetalle(dossier) {
   seguimientoDetalle.hidden = false;
   seguimientoDetalle.scrollIntoView({ behavior: 'smooth' });
 
+  // El dossier siempre existe (Seguimiento y Dossiers son la misma tabla:
+  // dar de alta un inmueble ya crea la fila de dossier, aunque esté vacía),
+  // así que siempre es "editar". El vídeo sí puede no existir todavía —
+  // video_url solo se rellena la primera vez que se genera uno para este
+  // inmueble desde la pestaña Vídeos.
+  seguimientoVideoBtn.textContent = dossier.video_url ? 'Ver vídeo' : 'Crear vídeo';
+
   renderComparativa(dossier);
   await Promise.all([cargarLeadsParaSelect(), cargarInteresados(dossier.id), cargarDocumentos(dossier.id)]);
 }
+
+seguimientoEditarDossierBtn.addEventListener('click', () => {
+  if (!dossierSeguimientoActual) return;
+  cambiarTab('dossiers');
+  abrirEditor(dossierSeguimientoActual);
+});
+
+seguimientoVideoBtn.addEventListener('click', () => {
+  if (!dossierSeguimientoActual) return;
+  cambiarTab('videos');
+  inmuebleSelect.value = dossierSeguimientoActual.id;
+  inmuebleSelect.dispatchEvent(new Event('change'));
+});
 
 cerrarSeguimientoBtn.addEventListener('click', () => {
   seguimientoDetalle.hidden = true;
@@ -2158,7 +2180,7 @@ const clips = [];
 async function cargarInmueblesParaVideo() {
   try {
     const respuesta = await fetch(
-      `${SUPABASE_URL}/rest/v1/dossiers?select=id,title,address,region,price,bedrooms,surface_m2&order=created_at.desc`,
+      `${SUPABASE_URL}/rest/v1/dossiers?select=id,title,address,region,price,bedrooms,surface_m2,video_url,video_versions&order=created_at.desc`,
       { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${getToken()}` } },
     );
     if (respuesta.status === 401 || respuesta.status === 403) {
@@ -2850,7 +2872,69 @@ generarVideoBtn.addEventListener('click', async () => {
     descargaVideoLink.href = urlFinal;
     descargaVideoLink.hidden = false;
 
-    videoStatus.textContent = 'Vídeo generado correctamente.';
+    // Si el vídeo es de un inmueble concreto, se guarda en Supabase Storage
+    // igual que los PDF (versionado, con video_url apuntando siempre al más
+    // reciente) — así Seguimiento puede saber si ese inmueble ya tiene un
+    // vídeo generado o no, en vez de solo poder descargarlo localmente.
+    if (dossierSeleccionado) {
+      try {
+        const versionesExistentes = Array.isArray(dossierSeleccionado.video_versions) ? dossierSeleccionado.video_versions : [];
+        const numeroVersion = versionesExistentes.length + 1;
+        const nombreArchivo = `videos/${dossierSeleccionado.id}-v${numeroVersion}.webm`;
+        const respuestaSubida = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${nombreArchivo}`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${getToken()}`,
+            'Content-Type': mimeType || 'video/webm',
+            'x-upsert': 'true',
+          },
+          body: blobFinal,
+        });
+        if (!respuestaSubida.ok) throw new Error(`Error ${respuestaSubida.status}`);
+
+        const videoUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${nombreArchivo}`;
+        const nuevasVersiones = [
+          ...versionesExistentes,
+          { version: numeroVersion, url: videoUrl, created_at: new Date().toISOString() },
+        ];
+        const respuestaPatch = await fetch(`${SUPABASE_URL}/rest/v1/dossiers?id=eq.${dossierSeleccionado.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${getToken()}`,
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ video_url: videoUrl, video_versions: nuevasVersiones }),
+        });
+        if (!respuestaPatch.ok) throw new Error(`Error ${respuestaPatch.status}`);
+
+        dossierSeleccionado.video_url = videoUrl;
+        dossierSeleccionado.video_versions = nuevasVersiones;
+        // La lista de Seguimiento/Dossiers se carga aparte (otra consulta,
+        // otros objetos) — se actualiza también para que el botón
+        // "Ver vídeo"/"Crear vídeo" refleje esto sin recargar la página.
+        const entradaEnListas = (typeof todosLosDossiers !== 'undefined' ? todosLosDossiers : []).find((d) => d.id === dossierSeleccionado.id);
+        if (entradaEnListas) {
+          entradaEnListas.video_url = videoUrl;
+          entradaEnListas.video_versions = nuevasVersiones;
+        }
+        // Si el detalle de Seguimiento de este mismo inmueble está abierto,
+        // el botón "Crear vídeo" pasa a decir "Ver vídeo" sin esperar a que
+        // se vuelva a abrir el panel.
+        if (dossierSeguimientoActual && dossierSeguimientoActual.id === dossierSeleccionado.id) {
+          dossierSeguimientoActual.video_url = videoUrl;
+          seguimientoVideoBtn.textContent = 'Ver vídeo';
+        }
+
+        videoStatus.textContent = 'Vídeo generado y guardado en el inmueble correctamente.';
+      } catch (errorGuardado) {
+        videoStatus.textContent = 'Vídeo generado, pero no se pudo guardar en el inmueble: ' + errorGuardado.message;
+      }
+    } else {
+      videoStatus.textContent = 'Vídeo generado correctamente.';
+    }
     videoStatus.className = 'form-status ok';
   } catch (error) {
     videoStatus.textContent = 'No se pudo generar el vídeo: ' + error.message;
