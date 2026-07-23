@@ -1410,12 +1410,6 @@ function renderPreview() {
         </div>` : ''}
         ${catastro ? `<p class="pdf-ref-catastral">Ref. catastral: ${escapeHtml(catastro)}</p>` : ''}
 
-        ${descripcion ? `
-        <div class="pdf-bloque">
-          <span class="pdf-eyebrow">Descripción</span>
-          <p class="pdf-descripcion">${escapeHtml(descripcion).replace(/\n/g, '<br>')}</p>
-        </div>` : ''}
-
         ${(grupoDistribucion.length || grupoEstadoVivienda.length || grupoGastos.length) ? `
         <div class="pdf-bloque pdf-bloque-oscuro">
           <span class="pdf-eyebrow">Datos de la vivienda</span>
@@ -1518,13 +1512,13 @@ function renderPreview() {
   ajustarEncuadreFotos();
 }
 
-// Recorte inteligente: por defecto las fotos (portada/galería) se recortan
+// Recorte inteligente de la GALERÍA: por defecto las fotos se recortan
 // centradas y ligeramente hacia arriba (para no cortar tejados/fachadas),
 // pero si la proporción de la foto es muy distinta a la del hueco (el doble
 // o más en cualquier sentido), se ajusta completa sin recortar en vez de
 // perder contenido importante de la imagen.
 function ajustarEncuadreFotos() {
-  const imgs = preview.querySelectorAll('.pdf-portada-foto img, .pdf-galeria img');
+  const imgs = preview.querySelectorAll('.pdf-galeria img');
   imgs.forEach((img) => {
     const ajustar = () => {
       if (!img.naturalWidth || !img.naturalHeight) return;
@@ -1539,6 +1533,38 @@ function ajustarEncuadreFotos() {
     if (img.complete) ajustar();
     else img.addEventListener('load', ajustar, { once: true });
   });
+
+  ajustarMarcoPortada();
+}
+
+// La foto de PORTADA nunca se recorta ni se deforma: en vez de forzarla a
+// un hueco de tamaño fijo, el propio hueco adapta su alto a la proporción
+// real de la foto (dentro de unos límites razonables para que la portada
+// no quede rarísima con fotos muy panorámicas o muy verticales). Con el
+// alto ya ajustado a su proporción exacta, "cover" no llega a recortar
+// nada porque el marco ya tiene la forma exacta de la imagen.
+function ajustarMarcoPortada() {
+  const marco = preview.querySelector('.pdf-portada-foto');
+  const img = marco ? marco.querySelector('img') : null;
+  if (!marco || !img) return;
+
+  const ALTO_MINIMO = 190;
+  const ALTO_MAXIMO = 460;
+
+  const ajustar = () => {
+    if (!img.naturalWidth || !img.naturalHeight) return;
+    const ancho = marco.getBoundingClientRect().width;
+    if (!ancho) return;
+    const altoIdeal = ancho * (img.naturalHeight / img.naturalWidth);
+    const altoFinal = Math.min(Math.max(altoIdeal, ALTO_MINIMO), ALTO_MAXIMO);
+    marco.style.height = `${altoFinal}px`;
+    // Si la proporción era tan extrema que hubo que recortar el alto a los
+    // límites, se deja "contain" para no perder ni deformar nada de la
+    // imagen (aparecerán franjas del fondo del marco a los lados/arriba).
+    img.classList.toggle('pdf-foto-contain', Math.abs(altoFinal - altoIdeal) > 1);
+  };
+  if (img.complete) ajustar();
+  else img.addEventListener('load', ajustar, { once: true });
 }
 
 // Vuelve a pintar la vista previa en vivo mientras se rellena el formulario
