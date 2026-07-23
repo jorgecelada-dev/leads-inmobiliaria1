@@ -26,10 +26,21 @@
         Panel privado
       </span>
       <div class="topbar-nav">
-        <a href="admin.html" class="nav-link">Leads</a>
-        <a href="dossiers.html" class="nav-link">Mis inmuebles</a>
-        <a href="marketing.html" class="nav-link">Email-marketing</a>
-        <a href="video.html" class="nav-link nav-link-activo">Vídeos</a>
+        <div class="nav-dropdown" data-abierto="false">
+          <button type="button" class="nav-dropdown-toggle nav-dropdown-activo">Mis inmuebles <span class="nav-dropdown-flecha">▾</span></button>
+          <div class="nav-dropdown-menu">
+            <a href="dossiers.html?tab=seguimiento">Seguimiento</a>
+            <a href="dossiers.html">Dossiers</a>
+            <a href="video.html" class="nav-link-activo">Vídeos</a>
+          </div>
+        </div>
+        <div class="nav-dropdown" data-abierto="false">
+          <button type="button" class="nav-dropdown-toggle">Clientes <span class="nav-dropdown-flecha">▾</span></button>
+          <div class="nav-dropdown-menu">
+            <a href="admin.html">Leads</a>
+            <a href="marketing.html">Email-marketing</a>
+          </div>
+        </div>
         <button class="lang-toggle" id="logout-btn" type="button">Salir</button>
       </div>
     </div>
@@ -99,6 +110,7 @@
     </div>
   </div>
 
+  <script src="topbar.js" defer></script>
   <script src="video.js" defer></script>
 </body>
 </html>

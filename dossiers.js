@@ -1700,12 +1700,17 @@ const panelDossiers = document.getElementById('tab-dossiers');
 const panelSeguimiento = document.getElementById('tab-seguimiento');
 let seguimientoCargado = false;
 
+const navLinkDossiers = document.getElementById('nav-link-dossiers');
+const navLinkSeguimiento = document.getElementById('nav-link-seguimiento');
+
 function cambiarTab(nombre) {
   const esDossiers = nombre === 'dossiers';
   panelDossiers.hidden = !esDossiers;
   panelSeguimiento.hidden = esDossiers;
   tabDossiersBtn.classList.toggle('inmuebles-tab-activa', esDossiers);
   tabSeguimientoBtn.classList.toggle('inmuebles-tab-activa', !esDossiers);
+  navLinkDossiers.classList.toggle('nav-link-activo', esDossiers);
+  navLinkSeguimiento.classList.toggle('nav-link-activo', !esDossiers);
   if (!esDossiers && !seguimientoCargado) {
     seguimientoCargado = true;
     cargarSeguimiento();
@@ -2076,3 +2081,12 @@ async function eliminarDocumento(doc) {
 }
 
 cargarDossiers();
+
+// Enlace directo desde el menú "Mis inmuebles" > Seguimiento
+// (dossiers.html?tab=seguimiento) — abre esa pestaña automáticamente.
+// Va al final del archivo porque cambiarTab('seguimiento') puede llamar a
+// cargarSeguimiento(), que depende de constantes declaradas más abajo de
+// donde se define cambiarTab.
+if (new URLSearchParams(window.location.search).get('tab') === 'seguimiento') {
+  cambiarTab('seguimiento');
+}
