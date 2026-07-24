@@ -946,13 +946,17 @@ h1, h2, h3 {
 
 .dossier-tarjeta-acciones {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
 }
 
-.dossier-tarjeta-acciones button {
-  flex: 1;
+.dossier-tarjeta-acciones button,
+.dossier-tarjeta-acciones a {
+  flex: 1 1 auto;
+  min-width: 90px;
   line-height: 1.4;
+  text-align: center;
 }
 
 .btn-editar {

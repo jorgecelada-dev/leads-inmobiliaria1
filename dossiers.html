@@ -422,12 +422,15 @@
     </div>
 
     <div id="tab-videos" class="inmuebles-tab-panel" hidden>
+      <p class="form-status" id="videos-lista-status"></p>
+      <div class="dossiers-lista" id="videos-lista"></div>
+
       <p class="marketing-nota">
         Sube los clips de un inmueble, recorta cada uno, y genera un vídeo corto (35–40s) con música fija y
         subtítulos — si eliges un inmueble de tus dossiers, los subtítulos se rellenan solos con sus datos.
       </p>
 
-      <div class="video-editor">
+      <div class="video-editor" id="video-editor-bloque">
         <div class="campo">
           <label for="v-inmueble">Elige el inmueble para este vídeo (opcional)</label>
           <select id="v-inmueble">

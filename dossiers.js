@@ -2548,7 +2548,7 @@ const clips = [];
 async function cargarInmueblesParaVideo() {
   try {
     const respuesta = await fetch(
-      `${SUPABASE_URL}/rest/v1/dossiers?select=id,title,address,region,price,bedrooms,surface_m2,video_url,video_versions&order=created_at.desc`,
+      `${SUPABASE_URL}/rest/v1/dossiers?select=id,title,address,region,price,bedrooms,surface_m2,cover_image_url,video_url,video_versions&order=created_at.desc`,
       { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${getToken()}` } },
     );
     if (respuesta.status === 401 || respuesta.status === 403) {
@@ -2570,9 +2570,118 @@ async function cargarInmueblesParaVideo() {
       inmuebleSelect.appendChild(opcion);
     });
     if (dossiersParaVideo.some((d) => d.id === valorPrevio)) inmuebleSelect.value = valorPrevio;
+
+    renderListaVideos(dossiersParaVideo);
   } catch (error) {
     videoStatus.textContent = 'No se pudieron cargar los inmuebles: ' + error.message;
     videoStatus.className = 'form-status error';
+  }
+}
+
+// --- Galería de vídeos ya generados, en formato tarjeta (igual que Dossiers) ---
+const videosLista = document.getElementById('videos-lista');
+const videosListaStatus = document.getElementById('videos-lista-status');
+const videoEditorBloque = document.getElementById('video-editor-bloque');
+
+function renderListaVideos(dossiers) {
+  const conVideo = dossiers.filter((d) => d.video_url);
+  videosListaStatus.textContent = `${conVideo.length} vídeo(s) generado(s)`;
+  videosListaStatus.className = 'form-status ok';
+
+  videosLista.innerHTML = '';
+  if (conVideo.length === 0) {
+    videosLista.innerHTML = '<p class="mapa-vacio">Todavía no se ha generado ningún vídeo.</p>';
+    return;
+  }
+  conVideo.forEach((d) => {
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'dossier-tarjeta';
+    tarjeta.innerHTML = `
+      ${d.cover_image_url ? `<img src="${d.cover_image_url}" alt="">` : '<div class="dossier-tarjeta-sin-foto"></div>'}
+      <div class="dossier-tarjeta-info">
+        <h3>${escapeHtml(d.title)}</h3>
+        <p>${escapeHtml(d.region || d.address || '')}</p>
+        ${d.price ? `<p>${formatearPrecio(d.price)}</p>` : ''}
+        <span class="dossier-tarjeta-badge">Vídeo listo</span>
+      </div>
+    `;
+
+    const acciones = document.createElement('div');
+    acciones.className = 'dossier-tarjeta-acciones';
+
+    const botonVer = document.createElement('a');
+    botonVer.href = d.video_url;
+    botonVer.target = '_blank';
+    botonVer.rel = 'noopener';
+    botonVer.className = 'btn-editar';
+    botonVer.textContent = 'Ver vídeo';
+    botonVer.addEventListener('click', (evento) => evento.stopPropagation());
+
+    const botonEditar = document.createElement('button');
+    botonEditar.type = 'button';
+    botonEditar.className = 'btn-editar';
+    botonEditar.textContent = 'Editar vídeo';
+    botonEditar.addEventListener('click', (evento) => {
+      evento.stopPropagation();
+      abrirEditorVideo(d);
+    });
+
+    const botonEliminar = document.createElement('button');
+    botonEliminar.type = 'button';
+    botonEliminar.className = 'btn-eliminar';
+    botonEliminar.textContent = 'Eliminar';
+    botonEliminar.addEventListener('click', (evento) => {
+      evento.stopPropagation();
+      eliminarVideo(d);
+    });
+
+    acciones.appendChild(botonVer);
+    acciones.appendChild(botonEditar);
+    acciones.appendChild(botonEliminar);
+    tarjeta.querySelector('.dossier-tarjeta-info').appendChild(acciones);
+
+    // Clic en la tarjeta (fuera de los botones): mismo atajo que "Editar vídeo".
+    tarjeta.addEventListener('click', () => abrirEditorVideo(d));
+    videosLista.appendChild(tarjeta);
+  });
+}
+
+// Selecciona este inmueble en el editor de vídeo (autorrellena subtítulos
+// con sus datos si los tiene) y baja hasta el editor — para regenerar o
+// cambiar el vídeo de un inmueble que ya tiene uno.
+function abrirEditorVideo(dossier) {
+  inmuebleSelect.value = dossier.id;
+  inmuebleSelect.dispatchEvent(new Event('change'));
+  videoEditorBloque.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Quita el vídeo de un inmueble (borra los archivos de Storage y limpia
+// video_url/video_versions) sin tocar el resto del dossier.
+async function eliminarVideo(dossier) {
+  const confirmado = confirm(`¿Eliminar el vídeo de "${dossier.title}"? Esta acción no se puede deshacer.`);
+  if (!confirmado) return;
+  try {
+    const respuesta = await fetch(`${SUPABASE_URL}/rest/v1/dossiers?id=eq.${dossier.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${getToken()}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ video_url: null, video_versions: [] }),
+    });
+    if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
+
+    await borrarArchivosStorage([
+      extraerRutaStorage(dossier.video_url),
+      ...(dossier.video_versions || []).map((v) => extraerRutaStorage(v.url)),
+    ]);
+
+    cargarInmueblesParaVideo();
+  } catch (error) {
+    videosListaStatus.textContent = 'No se pudo eliminar: ' + error.message;
+    videosListaStatus.className = 'form-status error';
   }
 }
 
